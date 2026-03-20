@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Interfaces for fetched data
 interface SensorData {
@@ -17,6 +18,7 @@ interface CropRecommendation {
 }
 
 export default function HomePage() {
+  const navigate = useNavigate();
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
   const [irrigation, setIrrigation] = useState<IrrigationSuggestion | null>(null);
   const [recommendedCrop, setRecommendedCrop] = useState<string | null>(null);
@@ -109,31 +111,37 @@ export default function HomePage() {
           Smart Farming powered by AI and IoT
         </p>
         <div style={{ display: "flex", justifyContent: "center", gap: "15px", flexWrap: "wrap" }}>
-          <button style={{
-            backgroundColor: "white",
-            color: "#15803d",
-            border: "none",
-            borderRadius: "8px",
-            padding: "14px 24px",
-            fontSize: "16px",
-            fontWeight: "bold",
-            cursor: "pointer",
-            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-            transition: "transform 0.2s"
-          }}>
+          <button 
+            onClick={() => navigate('/crops')}
+            style={{
+              backgroundColor: "white",
+              color: "#15803d",
+              border: "none",
+              borderRadius: "8px",
+              padding: "14px 24px",
+              fontSize: "16px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+              transition: "transform 0.2s"
+            }}
+          >
             Get Crop Recommendation
           </button>
-          <button style={{
-            backgroundColor: "transparent",
-            color: "white",
-            border: "2px solid white",
-            borderRadius: "8px",
-            padding: "12px 24px",
-            fontSize: "16px",
-            fontWeight: "bold",
-            cursor: "pointer",
-            transition: "transform 0.2s"
-          }}>
+          <button 
+            onClick={() => navigate('/scan')}
+            style={{
+              backgroundColor: "transparent",
+              color: "white",
+              border: "2px solid white",
+              borderRadius: "8px",
+              padding: "12px 24px",
+              fontSize: "16px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              transition: "transform 0.2s"
+            }}
+          >
             Scan Disease
           </button>
         </div>
@@ -391,7 +399,7 @@ export default function HomePage() {
               borderRadius: "12px",
               border: `2px solid ${soilAnalysisResult.score >= 8 ? "#16a34a" : soilAnalysisResult.score >= 5 ? "#f97316" : "#ef4444"}`
             }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", flexWrap: "wrap", gap: "10px" }}>
+              <div style={{ marginBottom: "15px" }}>
                 <h3 style={{ 
                   margin: 0, 
                   color: soilAnalysisResult.score >= 8 ? "#166534" : soilAnalysisResult.score >= 5 ? "#9a3412" : "#991b1b",
@@ -400,15 +408,6 @@ export default function HomePage() {
                 }}>
                   {soilAnalysisResult.score >= 8 ? "Excellent Soil Health 🌱" : soilAnalysisResult.score >= 5 ? "Moderate Soil Health ⚠️" : "Poor Soil Health ❌"}
                 </h3>
-                <span style={{ 
-                  fontSize: "18px", 
-                  fontWeight: "bold", 
-                  backgroundColor: "rgba(255,255,255,0.5)", 
-                  padding: "6px 16px", 
-                  borderRadius: "20px" 
-                }}>
-                  Score: {soilAnalysisResult.score}/10
-                </span>
               </div>
               
               <ul style={{ margin: 0, paddingLeft: "25px", color: "#374151", fontSize: "18px", lineHeight: "1.6" }}>
