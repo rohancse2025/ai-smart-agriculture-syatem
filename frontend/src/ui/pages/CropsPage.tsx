@@ -1,21 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Helper to get crop emoji
-const getCropEmoji = (cropName: string) => {
-  if (!cropName) return "🌱";
-  const name = cropName.toLowerCase();
-  if (name.includes("rice")) return "🌾";
-  if (name.includes("wheat")) return "🌿";
-  if (name.includes("cotton")) return "🌱";
-  if (name.includes("maize")) return "🌽";
-  if (name.includes("grape")) return "🍇";
-  if (name.includes("mango")) return "🥭";
-  if (name.includes("apple")) return "🍎";
-  if (name.includes("banana")) return "🍌";
-  return "🌱";
-};
-
 // Helper for farmer-friendly hints
 const getSliderHint = (name: string, value: number) => {
   if (name === "N") {
@@ -57,16 +42,13 @@ export default function CropsPage() {
     rainfall: 100
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [recommendation, setRecommendation] = useState<string | null>(null);
-
   type AICrop = {
     name: string; emoji: string; reason: string;
     water_needed: string; best_season: string; profit_potential: string;
   };
   const [aiCrops, setAiCrops] = useState<AICrop[]>([]);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,28 +56,10 @@ export default function CropsPage() {
     setInputs(prev => ({ ...prev, [name]: parseFloat(value) }));
   };
 
-  const getRecommendation = async () => {
+  const getMLRecommendation = async () => {
     setIsLoading(true);
-    setRecommendation(null);
-    try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/recommend-crop", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(inputs)
-      });
-      const data = await res.json();
-      setRecommendation(data.crop);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getAIRecommendation = async () => {
-    setAiLoading(true);
     setAiCrops([]);
-    setAiError(null);
+    setError(null);
     try {
       const res = await fetch("http://127.0.0.1:8000/api/v1/crops", {
         method: "POST",
@@ -113,9 +77,9 @@ export default function CropsPage() {
       const data = await res.json();
       setAiCrops(data.crops || []);
     } catch (err: any) {
-      setAiError(err.message || "Failed to get AI recommendations. Please try again.");
+      setError(err.message || "Failed to get AI recommendations. Please try again.");
     } finally {
-      setAiLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -255,21 +219,17 @@ export default function CropsPage() {
             <p style={{ margin: 0, fontSize: "18px", opacity: 0.9 }}>Move the sliders to match your farm conditions</p>
           </section>
 
-          {/* 2. TWO COLUMN LAYOUT */}
-          <div style={{ display: "flex", gap: "30px", flexWrap: "wrap", marginBottom: "40px" }}>
+          {/* 2. PARAMETERS AND RESULTS */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "30px", marginBottom: "40px" }}>
             
-            {/* Left Column: Input Form */}
-        <div style={{
-          ...cardStyle,
-          flex: "1 1 500px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "20px",
-          borderTop: "4px solid #16a34a"
-        }}>
-              <h2 style={{ margin: "0 0 10px 0", color: "#333", fontSize: "24px" }}>Farm Parameters</h2>
+            {/* Input Form Card */}
+            <div style={{
+              ...cardStyle,
+              borderTop: "4px solid #16a34a"
+            }}>
+              <h2 style={{ margin: "0 0 20px 0", color: "#333", fontSize: "24px" }}>Farm Parameters</h2>
               
-              <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "25px", marginBottom: "25px" }}>
                 {sliders.map(slider => {
                   const currentValue = inputs[slider.name as keyof typeof inputs];
                   return (
@@ -315,12 +275,12 @@ export default function CropsPage() {
               </div>
 
               <button
-                onClick={getRecommendation}
+                onClick={getMLRecommendation}
                 disabled={isLoading}
                 style={{
-                  marginTop: "15px",
+                  width: "100%",
                   padding: "16px",
-                  backgroundColor: "#1f2937",
+                  backgroundColor: isLoading ? "#9ca3af" : "#16a34a",
                   color: "white",
                   border: "none",
                   borderRadius: "8px",
@@ -330,208 +290,139 @@ export default function CropsPage() {
                   transition: "background-color 0.2s"
                 }}
                 onMouseEnter={(e) => {
-                  if (!isLoading) e.currentTarget.style.backgroundColor = "#374151";
+                  if (!isLoading) e.currentTarget.style.backgroundColor = "#15803d";
                 }}
                 onMouseLeave={(e) => {
-                  if (!isLoading) e.currentTarget.style.backgroundColor = "#1f2937";
+                  if (!isLoading) e.currentTarget.style.backgroundColor = "#16a34a";
                 }}
               >
                 {isLoading ? "Analyzing..." : "Get ML Recommendation"}
               </button>
-
-              <button
-                onClick={getAIRecommendation}
-                disabled={aiLoading}
-                style={{
-                  marginTop: "10px", padding: "16px",
-                  backgroundColor: aiLoading ? "#9ca3af" : "#16a34a",
-                  color: "white", border: "none", borderRadius: "8px",
-                  fontSize: "18px", fontWeight: "bold",
-                  cursor: aiLoading ? "not-allowed" : "pointer",
-                  transition: "background-color 0.2s", width: "100%",
-                  fontFamily: "inherit"
-                }}
-                onMouseEnter={(e) => { if (!aiLoading) e.currentTarget.style.backgroundColor = "#15803d"; }}
-                onMouseLeave={(e) => { if (!aiLoading) e.currentTarget.style.backgroundColor = "#16a34a"; }}
-              >
-                {aiLoading ? "🤖 AI Thinking..." : "🤖 Get AI Recommendation (Top 3 Crops)"}
-              </button>
             </div>
 
-            {/* Right Column: Result Card */}
-            <div style={{ flex: "1 1 350px", display: "flex", flexDirection: "column" }}>
-              
-              {(recommendation || isLoading) ? (
-                <div style={{...cardStyle, flex: 1, display: "flex", flexDirection: "column", borderTop: "4px solid #16a34a" }}>
-                  <h2 style={{ margin: "0 0 5px 0", color: "#333", fontSize: "22px" }}>AI Recommendation</h2>
-                  <p style={{ margin: "0 0 25px 0", color: "#6b7280" }}>Based on your specific conditions</p>
-                  
-                  {isLoading ? (
-                    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ 
-                        border: "4px solid #f3f4f6", 
-                        borderTop: "4px solid #16a34a", 
-                        borderRadius: "50%", 
-                        width: "50px", 
-                        height: "50px", 
-                        animation: "spin 1s linear infinite" 
-                      }} />
-                      <p style={{ marginTop: "15px", color: "#6b7280", fontWeight: "600" }}>Running Model...</p>
-                      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                      
-                      <div style={{ textAlign: "center", padding: "10px 0" }}>
-                        <div style={{ fontSize: "64px", marginBottom: "10px" }}>
-                          {getCropEmoji(recommendation || "")}
-                        </div>
-                        <h3 style={{ margin: "0", fontSize: "48px", color: "#2563eb", textTransform: "capitalize", fontWeight: "900" }}>
-                          {recommendation}
-                        </h3>
-                      </div>
+            {/* ERROR MESSAGE */}
+            {error && (
+              <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "12px", padding: "20px", color: "#991b1b", textAlign: "center" }}>
+                ⚠️ {error}
+              </div>
+            )}
 
-                      {/* Confidence Badge & Progress */}
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                          <span style={{ fontWeight: "600", color: "#4b5563" }}>Confidence Score</span>
-                          <span style={{ 
-                            backgroundColor: "#dcfce7", 
-                            color: "#166534", 
-                            padding: "4px 10px", 
-                            borderRadius: "12px", 
-                            fontSize: "13px", 
-                            fontWeight: "bold" 
-                          }}>
-                            ✓ High Confidence
-                          </span>
-                        </div>
-                        <div style={{ height: "10px", backgroundColor: "#e5e7eb", borderRadius: "5px", overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: "94.7%", backgroundColor: "#16a34a" }}></div>
-                        </div>
-                      </div>
+            {/* RESULTS SECTION */}
+            {(isLoading || aiCrops.length > 0) && (
+              <div>
+                <h2 style={{ fontSize: "24px", color: "#111827", marginBottom: "20px", textAlign: "center" }}>
+                  🤖 Top 3 AI Crop Recommendations
+                </h2>
+                
+                {isLoading ? (
+                  <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
+                    <div style={{ 
+                      border: "4px solid #f3f4f6", 
+                      borderTop: "4px solid #16a34a", 
+                      borderRadius: "50%", 
+                      width: "50px", 
+                      height: "50px", 
+                      animation: "spin 1s linear infinite" 
+                    }} />
+                    <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
+                    {aiCrops.slice(0, 3).map((crop, idx) => {
+                      const topBorderColors = ["#16a34a", "#2563eb", "#ea580c"];
+                      const profitConfig = {
+                        Low: { bg: "#fee2e2", text: "#991b1b" },
+                        Medium: { bg: "#ffedd5", text: "#9a3412" },
+                        High: { bg: "#dcfce7", text: "#166534" }
+                      };
+                      const profitStyle = profitConfig[crop.profit_potential as keyof typeof profitConfig] || profitConfig.Medium;
 
-                      {/* Key Factors */}
-                      <div style={{ marginTop: "15px", backgroundColor: "#f8fafc", padding: "20px", borderRadius: "8px" }}>
-                        <h4 style={{ margin: "0 0 15px 0", color: "#333", fontSize: "16px" }}>Key Factors</h4>
-                        <ul style={{ margin: 0, paddingLeft: "20px", color: "#4b5563", display: "flex", flexDirection: "column", gap: "10px" }}>
-                          <li>Match verified against required <strong>Soil Nutrient profile (N-P-K)</strong>.</li>
-                          <li>Highly suitable for current <strong>Temperature ({inputs.temperature}°C)</strong> and Moisture.</li>
-                          <li>Rainfall tolerance aligns closely with your recorded area.</li>
-                        </ul>
-                      </div>
-                      
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div style={{
-                  ...cardStyle, 
-                  flex: 1, 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  alignItems: "center", 
-                  justifyContent: "center",
-                  backgroundColor: "#f9fafb",
-                  border: "2px dashed #d1d5db",
-                  boxShadow: "none"
-                }}>
-                  <span style={{ fontSize: "40px", opacity: 0.5, marginBottom: "15px" }}>🌾</span>
-                  <p style={{ color: "#6b7280", fontSize: "18px", textAlign: "center", padding: "0 20px" }}>
-                    Adjust your farm parameters on the left and click <strong>Get ML Recommendation</strong> to see AI suggestions here.
-                  </p>
-                </div>
-              )}
-            </div>
+                      return (
+                        <div key={idx} style={{
+                          ...cardStyle,
+                          borderTop: `6px solid ${topBorderColors[idx] || "#16a34a"}`,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "15px",
+                          textAlign: "center",
+                          transition: "transform 0.2s",
+                          cursor: "default"
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.transform = "translateY(-5px)"}
+                        onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
+                        >
+                          <div style={{ fontSize: "48px", marginTop: "10px" }}>{crop.emoji}</div>
+                          <h3 style={{ fontSize: "24px", fontWeight: "bold", color: "#2563eb", margin: 0 }}>{crop.name}</h3>
+                          <p style={{ fontSize: "14px", color: "#6b7280", fontStyle: "italic", margin: 0, lineHeight: "1.4" }}>{crop.reason}</p>
+                          
+                          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px", textAlign: "left" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "15px" }}>
+                              <span>💧</span>
+                              <span style={{ fontWeight: "600", color: "#4b5563" }}>Water needed:</span>
+                              <span style={{ color: "#1f2937" }}>{crop.water_needed}</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "15px" }}>
+                              <span>📅</span>
+                              <span style={{ fontWeight: "600", color: "#4b5563" }}>Best season:</span>
+                              <span style={{ color: "#1f2937" }}>{crop.best_season}</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "15px" }}>
+                              <span>💰</span>
+                              <span style={{ fontWeight: "600", color: "#4b5563" }}>Profit:</span>
+                              <span style={{ 
+                                background: profitStyle.bg, 
+                                color: profitStyle.text, 
+                                padding: "2px 10px", 
+                                borderRadius: "12px", 
+                                fontSize: "13px", 
+                                fontWeight: "bold" 
+                              }}>
+                                {crop.profit_potential}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => navigate('/chat', { state: { prefill: `Tell me more about growing ${crop.name} — best practices, diseases to watch for, and fertilizer tips.` } })}
+                            style={{
+                              marginTop: "10px",
+                              background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0",
+                              borderRadius: "8px", padding: "10px", fontSize: "14px",
+                              fontWeight: "600", cursor: "pointer", transition: "background 0.2s"
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = "#dcfce7"}
+                            onMouseLeave={e => e.currentTarget.style.background = "#f0fdf4"}
+                          >
+                            Ask AI about {crop.name} →
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {(!isLoading && aiCrops.length === 0 && !error) && (
+              <div style={{
+                ...cardStyle, 
+                display: "flex", 
+                flexDirection: "column", 
+                alignItems: "center", 
+                justifyContent: "center",
+                backgroundColor: "#f9fafb",
+                border: "2px dashed #d1d5db",
+                boxShadow: "none",
+                padding: "60px 20px"
+              }}>
+                <span style={{ fontSize: "40px", opacity: 0.5, marginBottom: "15px" }}>🌾</span>
+                <p style={{ color: "#6b7280", fontSize: "18px", textAlign: "center", maxWidth: "500px" }}>
+                  Adjust your farm parameters above and click <strong>Get ML Recommendation</strong> to see AI suggestions here.
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* AI CROP RESULT CARDS */}
-          {(aiLoading || aiCrops.length > 0 || aiError) && (
-            <div style={{ marginBottom: "32px" }}>
-              <h2 style={{ fontSize: "22px", color: "#111827", marginBottom: "16px" }}>
-                🤖 AI Crop Recommendations
-              </h2>
-
-              {aiError && (
-                <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "12px", padding: "20px", color: "#991b1b" }}>
-                  ⚠️ {aiError}
-                </div>
-              )}
-
-              {aiLoading && (
-                <div style={{ display: "flex", gap: "20px" }}>
-                  {[1,2,3].map(i => (
-                    <div key={i} style={{ flex: 1, background: "white", borderRadius: "16px", padding: "28px", border: "1px solid #e5e7eb" }}>
-                      <div style={{ height: "24px", background: "#f3f4f6", borderRadius: "8px", marginBottom: "12px" }} />
-                      <div style={{ height: "16px", background: "#f3f4f6", borderRadius: "6px", marginBottom: "8px", width: "80%" }} />
-                      <div style={{ height: "16px", background: "#f3f4f6", borderRadius: "6px", width: "60%" }} />
-                    </div>
-                  ))}
-                  <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }`}</style>
-                </div>
-              )}
-
-              {!aiLoading && aiCrops.length > 0 && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
-                  {aiCrops.map((cropItem, idx) => {
-                    const profitColor = cropItem.profit_potential === "High"
-                      ? { bg: "#dcfce7", text: "#166534" }
-                      : cropItem.profit_potential === "Medium"
-                      ? { bg: "#fef9c3", text: "#854d0e" }
-                      : { bg: "#f3f4f6", text: "#374151" };
-                    return (
-                      <div key={idx} style={{
-                        background: "white", borderRadius: "16px", padding: "28px",
-                        border: "1px solid #e5e7eb", boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
-                        borderTop: "4px solid #16a34a", display: "flex", flexDirection: "column", gap: "14px",
-                        transition: "transform 0.2s, box-shadow 0.2s"
-                      }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.06)"; }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                          <div>
-                            <span style={{ fontSize: "40px" }}>{cropItem.emoji}</span>
-                            <h3 style={{ margin: "8px 0 0 0", fontSize: "22px", color: "#111827", fontWeight: "700" }}>{cropItem.name}</h3>
-                          </div>
-                          <span style={{ background: profitColor.bg, color: profitColor.text, padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "700", whiteSpace: "nowrap" }}>
-                            {cropItem.profit_potential} Profit
-                          </span>
-                        </div>
-
-                        <p style={{ margin: 0, fontSize: "14px", color: "#4b5563", lineHeight: "1.5" }}>{cropItem.reason}</p>
-
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "#f9fafb", borderRadius: "10px", padding: "14px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                            <span style={{ color: "#6b7280", fontWeight: "600" }}>💧 Water</span>
-                            <span style={{ color: "#1f2937", fontWeight: "500" }}>{cropItem.water_needed}</span>
-                          </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
-                            <span style={{ color: "#6b7280", fontWeight: "600" }}>📅 Season</span>
-                            <span style={{ color: "#1f2937", fontWeight: "500" }}>{cropItem.best_season}</span>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => navigate('/chat', { state: { prefill: `Tell me more about growing ${cropItem.name} — best practices, diseases to watch for, and fertilizer tips.` } })}
-                          style={{
-                            background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0",
-                            borderRadius: "8px", padding: "10px 14px", fontSize: "14px",
-                            fontWeight: "600", cursor: "pointer", textAlign: "left",
-                            transition: "background 0.2s", fontFamily: "inherit"
-                          }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#dcfce7"; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#f0fdf4"; }}
-                        >
-                          🤖 Ask AI about {cropItem.name} →
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* 4. HOW IT WORKS SECTION */}
           <h2 style={{ textAlign: "center", marginBottom: "30px", color: "#333", fontSize: "28px", fontWeight: "bold" }}>How It Works</h2>

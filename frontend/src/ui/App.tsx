@@ -5,7 +5,6 @@ import CropsPage from "./pages/CropsPage";
 import ScanPage from "./pages/ScanPage";
 import IoTPage from "./pages/IoTPage";
 import ChatPage from "./pages/ChatPage";
-import WeatherPage from "./pages/WeatherPage";
 
 export default function App() {
   const navigate = useNavigate();
@@ -20,7 +19,6 @@ export default function App() {
     { path: "/crops", label: "Crops" },
     { path: "/scan", label: "Scan" },
     { path: "/iot", label: "IoT" },
-    { path: "/weather", label: "Weather" },
     { path: "/chat", label: "Chat" },
   ];
 
@@ -231,7 +229,6 @@ export default function App() {
           <Route path="/crops" element={<CropsPage />} />
           <Route path="/scan" element={<ScanPage />} />
           <Route path="/iot" element={<IoTPage />} />
-          <Route path="/weather" element={<WeatherPage />} />
           <Route path="/chat" element={<ChatPage />} />
         </Routes>
       </main>

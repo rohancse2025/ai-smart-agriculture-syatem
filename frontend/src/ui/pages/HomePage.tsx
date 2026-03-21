@@ -8,6 +8,15 @@ interface SensorData {
   soil_moisture: number;
 }
 
+interface WeatherData {
+  temperature: number;
+  humidity: number;
+  wind_speed: number;
+  condition: string;
+  city: string;
+  farming_tip: string;
+}
+
 interface IrrigationSuggestion {
   status: string;
   message: string;
@@ -20,9 +29,11 @@ interface CropRecommendation {
 export default function HomePage() {
   const navigate = useNavigate();
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [irrigation, setIrrigation] = useState<IrrigationSuggestion | null>(null);
   const [recommendedCrop, setRecommendedCrop] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [weatherLoading, setWeatherLoading] = useState(true);
 
   const [soilInputs, setSoilInputs] = useState({ ph: "", nitrogen: "", moisture: "" });
   const [soilAnalysisResult, setSoilAnalysisResult] = useState<{score: number, tips: string[]} | null>(null);
@@ -56,7 +67,7 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    // Fetch all data
+    // Fetch sensor + irrigation + crop data
     const fetchData = async () => {
       try {
         const [sensorRes, cropRes] = await Promise.all([
@@ -86,7 +97,45 @@ export default function HomePage() {
       }
     };
 
+    // Fetch real weather via geolocation, fallback to sensor-data
+    const fetchWeather = async () => {
+      setWeatherLoading(true);
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 })
+        );
+        const { latitude, longitude } = pos.coords;
+        const res = await fetch(`http://127.0.0.1:8000/api/v1/weather?lat=${latitude}&lon=${longitude}`);
+        if (!res.ok) throw new Error('Weather API failed');
+        const data: WeatherData = await res.json();
+        setWeatherData(data);
+      } catch {
+        // Fallback: use sensor-data for temperature & humidity
+        try {
+          const res = await fetch('http://127.0.0.1:8000/api/v1/sensor-data');
+          const data: SensorData = await res.json();
+          setWeatherData({
+            temperature: data.temperature,
+            humidity: data.humidity,
+            wind_speed: 0,
+            condition: data.temperature > 35 ? 'Hot Day' : data.temperature < 20 ? 'Cool Day' : 'Pleasant Day',
+            city: '',
+            farming_tip: data.temperature > 35
+              ? 'Water crops early morning to avoid heat stress'
+              : data.humidity > 80
+              ? 'High humidity — watch for fungal diseases'
+              : 'Good farming conditions today'
+          });
+        } catch {
+          console.error('Weather fallback failed');
+        }
+      } finally {
+        setWeatherLoading(false);
+      }
+    };
+
     fetchData();
+    fetchWeather();
   }, []);
 
   return (
@@ -158,15 +207,19 @@ export default function HomePage() {
       }}>
         <h2 style={{ fontSize: "24px", color: "#1e3a8a", margin: "0 0 25px 0" }}>🌤️ Today's Weather & Farming Advice</h2>
         
+        {weatherData?.city && (
+          <p style={{ margin: "0 0 18px 0", fontSize: "16px", color: "#3b82f6", fontWeight: "600" }}>
+            📍 {weatherData.city}
+          </p>
+        )}
+
         <div style={{ display: "flex", gap: "30px", alignItems: "center", flexWrap: "wrap", marginBottom: "25px" }}>
           <div style={{ minWidth: "200px" }}>
             <span style={{ fontSize: "64px", fontWeight: "900", color: "#1e3a8a", lineHeight: 1 }}>
-              {isLoading ? "—" : sensorData?.temperature !== undefined ? `${sensorData.temperature}°C` : "N/A"}
+              {weatherLoading ? "—" : weatherData?.temperature !== undefined ? `${weatherData.temperature}°C` : "N/A"}
             </span>
             <p style={{ margin: "5px 0 0 0", color: "#3b82f6", fontWeight: "bold", fontSize: "20px" }}>
-              {isLoading ? "Loading..." : 
-                (sensorData?.temperature || 0) > 35 ? "Hot Day ☀️" : 
-                (sensorData?.temperature || 0) < 20 ? "Cool Day 🌥️" : "Pleasant Day 🌤️"}
+              {weatherLoading ? "Loading..." : weatherData?.condition || ""}
             </p>
           </div>
           
@@ -174,12 +227,14 @@ export default function HomePage() {
             <div style={{ backgroundColor: "white", padding: "15px 20px", borderRadius: "10px", flex: "1 1 120px", textAlign: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
               <p style={{ margin: "0 0 5px 0", color: "#6b7280", fontSize: "16px", fontWeight: "600" }}>Humidity</p>
               <p style={{ margin: 0, fontWeight: "bold", color: "#333", fontSize: "22px" }}>
-                {isLoading ? "—" : sensorData?.humidity !== undefined ? `${sensorData.humidity}%` : "N/A"}
+                {weatherLoading ? "—" : weatherData?.humidity !== undefined ? `${weatherData.humidity}%` : "N/A"}
               </p>
             </div>
             <div style={{ backgroundColor: "white", padding: "15px 20px", borderRadius: "10px", flex: "1 1 120px", textAlign: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
               <p style={{ margin: "0 0 5px 0", color: "#6b7280", fontSize: "16px", fontWeight: "600" }}>Wind</p>
-              <p style={{ margin: 0, fontWeight: "bold", color: "#333", fontSize: "22px" }}>12 km/h</p>
+              <p style={{ margin: 0, fontWeight: "bold", color: "#333", fontSize: "22px" }}>
+                {weatherLoading ? "—" : weatherData?.wind_speed !== undefined ? `${weatherData.wind_speed} m/s` : "N/A"}
+              </p>
             </div>
             <div style={{ backgroundColor: "white", padding: "15px 20px", borderRadius: "10px", flex: "1 1 120px", textAlign: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
               <p style={{ margin: "0 0 5px 0", color: "#6b7280", fontSize: "16px", fontWeight: "600" }}>UV Index</p>
@@ -188,14 +243,31 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div style={{ borderTop: "2px solid #bfdbfe", paddingTop: "20px" }}>
+        <div style={{ borderTop: "2px solid #bfdbfe", paddingTop: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
           <p style={{ margin: 0, color: "#15803d", fontStyle: "italic", fontWeight: "bold", fontSize: "18px" }}>
-            {isLoading ? "Analyzing farm conditions..." : 
-              (sensorData?.temperature || 0) > 35 ? "💡 Water crops early morning to avoid heat stress" :
-              (sensorData?.humidity || 0) > 80 ? "💡 High humidity — watch for fungal diseases" :
-              "💡 Good farming conditions today"
-            }
+            {weatherLoading ? "Fetching weather..." : weatherData?.farming_tip ? `💡 ${weatherData.farming_tip}` : "💡 Good farming conditions today"}
           </p>
+          {!weatherLoading && weatherData && (
+            <button
+              onClick={() => navigate('/chat', { state: { prefill: `It is currently ${weatherData.temperature}°C with ${weatherData.condition} and ${weatherData.humidity}% humidity. What farming advice do you have for today?` } })}
+              style={{
+                border: "1px solid #16a34a",
+                color: "#16a34a",
+                backgroundColor: "white",
+                borderRadius: "8px",
+                padding: "10px 16px",
+                fontSize: "14px",
+                fontWeight: "600",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "background-color 0.2s"
+              }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f0fdf4"}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = "white"}
+            >
+              🤖 Ask AI about today's weather
+            </button>
+          )}
         </div>
       </section>
 
@@ -214,7 +286,7 @@ export default function HomePage() {
             </div>
             <div style={{ marginTop: "15px" }}>
               <h3 style={statValueStyle}>{isLoading ? "—" : sensorData?.temperature !== undefined ? `${sensorData.temperature}°C` : "N/A"}</h3>
-              <p style={statLabelStyle}>Temperature</p>
+              <p style={statLabelStyle}>Soil Temp</p>
             </div>
           </div>
           
@@ -225,7 +297,7 @@ export default function HomePage() {
             </div>
             <div style={{ marginTop: "15px" }}>
               <h3 style={statValueStyle}>{isLoading ? "—" : sensorData?.humidity !== undefined ? `${sensorData.humidity}%` : "N/A"}</h3>
-              <p style={statLabelStyle}>Humidity</p>
+              <p style={statLabelStyle}>Air Humidity</p>
             </div>
           </div>
           
