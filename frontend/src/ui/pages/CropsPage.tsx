@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Helper for farmer-friendly hints
@@ -30,6 +30,13 @@ const getSliderHint = (name: string, value: number) => {
 
 export default function CropsPage() {
   const [activeTab, setActiveTab] = useState<'crop' | 'fertilizer'>('crop');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // --- CROP RECOMMENDATION STATE ---
   const [inputs, setInputs] = useState({
@@ -167,9 +174,11 @@ export default function CropsPage() {
             borderTopLeftRadius: "12px",
             borderTopRightRadius: "12px",
             color: activeTab === 'crop' ? "#16a34a" : "#6b7280",
-            fontSize: "18px",
+            padding: isMobile ? "12px 15px" : "16px 25px",
+            fontSize: isMobile ? "14px" : "18px",
             fontWeight: "bold",
-            padding: "16px 25px",
+            flex: isMobile ? 1 : "initial",
+            textAlign: "center",
             cursor: "pointer",
             transition: "all 0.2s ease-in-out",
             position: "relative",
@@ -189,9 +198,11 @@ export default function CropsPage() {
             borderTopLeftRadius: "12px",
             borderTopRightRadius: "12px",
             color: activeTab === 'fertilizer' ? "#16a34a" : "#6b7280",
-            fontSize: "18px",
+            padding: isMobile ? "12px 15px" : "16px 25px",
+            fontSize: isMobile ? "14px" : "18px",
             fontWeight: "bold",
-            padding: "16px 25px",
+            flex: isMobile ? 1 : "initial",
+            textAlign: "center",
             cursor: "pointer",
             transition: "all 0.2s ease-in-out",
             position: "relative",
@@ -210,13 +221,14 @@ export default function CropsPage() {
           <section style={{
             background: "linear-gradient(135deg, #15803d 0%, #16a34a 100%)",
             borderRadius: "12px",
-            padding: "40px",
+            padding: isMobile ? "30px 20px" : "40px",
             color: "white",
             marginBottom: "30px",
-            boxShadow: "0 4px 15px rgba(21, 128, 61, 0.2)"
+            boxShadow: "0 4px 15px rgba(21, 128, 61, 0.2)",
+            textAlign: isMobile ? "center" : "left"
           }}>
-            <h1 style={{ margin: "0 0 10px 0", fontSize: "36px", fontWeight: "bold" }}>🌾 Crop Recommendation</h1>
-            <p style={{ margin: 0, fontSize: "18px", opacity: 0.9 }}>Move the sliders to match your farm conditions</p>
+            <h1 style={{ margin: "0 0 10px 0", fontSize: isMobile ? "28px" : "36px", fontWeight: "bold" }}>🌾 {isMobile ? "Plant AI" : "Crop Recommendation"}</h1>
+            <p style={{ margin: 0, fontSize: isMobile ? "16px" : "18px", opacity: 0.9 }}>{isMobile ? "Move sliders to analyze soil" : "Move the sliders to match your farm conditions"}</p>
           </section>
 
           {/* 2. PARAMETERS AND RESULTS */}
@@ -229,7 +241,7 @@ export default function CropsPage() {
             }}>
               <h2 style={{ margin: "0 0 20px 0", color: "#111827", fontSize: "20px", fontWeight: "700" }}>Farm Parameters</h2>
               
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "30px", marginBottom: "25px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: isMobile ? "20px" : "30px", marginBottom: "25px" }}>
                 {sliders.map(slider => {
                   const currentValue = inputs[slider.name as keyof typeof inputs];
                   return (

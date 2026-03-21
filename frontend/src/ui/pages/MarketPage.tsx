@@ -32,6 +32,14 @@ export default function MarketPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const fetchPrices = async (c = commodity, s = state) => {
     setIsLoading(true);
     setHasSearched(true);
@@ -76,17 +84,17 @@ export default function MarketPage() {
   return (
     <div style={{ paddingBottom: "60px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       
-      {/* 1. HERO HEADER */}
       <section style={{
         background: "linear-gradient(135deg, #15803d 0%, #16a34a 100%)",
         borderRadius: "16px",
-        padding: "40px",
+        padding: isMobile ? "30px 20px" : "40px",
         color: "white",
         marginBottom: "30px",
-        boxShadow: "0 10px 25px rgba(21, 128, 61, 0.2)"
+        boxShadow: "0 10px 25px rgba(21, 128, 61, 0.2)",
+        textAlign: isMobile ? "center" : "left"
       }}>
-        <h1 style={{ margin: "0 0 10px 0", fontSize: "32px", fontWeight: "800" }}>📊 Market Price Checker</h1>
-        <p style={{ margin: "0 0 15px 0", fontSize: "18px", opacity: 0.9 }}>
+        <h1 style={{ margin: "0 0 10px 0", fontSize: isMobile ? "24px" : "32px", fontWeight: "800" }}>📊 Market Price Checker</h1>
+        <p style={{ margin: "0 0 15px 0", fontSize: isMobile ? "16px" : "18px", opacity: 0.9 }}>
           Live mandi prices from Government of India
         </p>
         <span style={{
@@ -188,7 +196,7 @@ export default function MarketPage() {
         <div style={{ animation: "fadeIn 0.5s ease-out" }}>
           
           {/* a) Summary Row */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginBottom: "30px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginBottom: "30px" }}>
             <div style={{ ...summaryCardStyle, borderTop: "4px solid #16a34a" }}>
               <p style={summaryLabelStyle}>Lowest Price</p>
               <h3 style={{ ...summaryValueStyle, color: "#16a34a" }}>₹{lowestPrice.toLocaleString()}</h3>
@@ -210,7 +218,7 @@ export default function MarketPage() {
           <div style={{ 
             backgroundColor: "white", 
             borderRadius: "16px", 
-            overflow: "hidden", 
+            overflowX: "auto", 
             boxShadow: "0 4px 6px rgba(0,0,0,0.05)",
             border: "1px solid #e5e7eb",
             marginBottom: "10px"
@@ -257,10 +265,12 @@ export default function MarketPage() {
           <div style={{
             backgroundColor: "#f0fdf4",
             borderRadius: "16px",
-            padding: "24px 30px",
+            padding: isMobile ? "20px" : "24px 30px",
             border: "1px solid #dcfce7",
             display: "flex",
             alignItems: "center",
+            flexDirection: isMobile ? "column" : "row",
+            textAlign: isMobile ? "center" : "left",
             gap: "20px"
           }}>
             <span style={{ fontSize: "32px" }}>💡</span>

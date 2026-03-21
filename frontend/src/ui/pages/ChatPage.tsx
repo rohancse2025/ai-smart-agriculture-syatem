@@ -23,6 +23,15 @@ export default function ChatPage() {
   const [isListening, setIsListening] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
   
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showSidebar, setShowSidebar] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -227,117 +236,179 @@ export default function ChatPage() {
       overflow: "hidden",
       border: "1px solid #e5e7eb"
     }}>
-      {/* LEFT PANEL */}
-      <div style={{
-        width: "350px",
-        borderRight: "1px solid #e5e7eb",
-        display: "flex",
-        flexDirection: "column",
-        background: "#fff",
-        padding: "24px",
-        overflowY: "auto"
-      }}>
-        <h2 style={{ margin: "0 0 24px 0", fontSize: "20px", color: "#111827", display: "flex", alignItems: "center", gap: "8px" }}>
-          💡 Quick Questions
-        </h2>
-        
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "32px" }}>
-          {questions.map((q, idx) => (
-            <div 
-              key={idx}
-              onClick={() => setInput(q)}
-              style={{
-                padding: "16px",
-                background: "white",
-                border: "1px solid #e5e7eb",
-                borderLeft: "4px solid #16a34a",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "#374151",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                transition: "all 0.2s",
-                fontWeight: "500"
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"}
-              onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
-            >
-              {q}
-            </div>
-          ))}
-        </div>
-
-        <div>
-          <h3 style={{ fontSize: "12px", fontWeight: "bold", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "16px", marginTop: "0" }}>
-            Tips for better answers
-          </h3>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
-            {[
-              "Mention your crop name",
-              "Include your location",
-              "Describe the problem clearly"
-            ].map((tip, idx) => (
-              <li key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "14px", color: "#4b5563" }}>
-                <span style={{ color: "#16a34a", marginTop: "2px" }}>✓</span>
-                {tip}
-              </li>
+      {/* LEFT PANEL (Hidden on mobile) */}
+      {!isMobile && (
+        <div style={{
+          width: "350px",
+          borderRight: "1px solid #e5e7eb",
+          display: "flex",
+          flexDirection: "column",
+          background: "#fff",
+          padding: "24px",
+          overflowY: "auto"
+        }}>
+          <h2 style={{ margin: "0 0 24px 0", fontSize: "20px", color: "#111827", display: "flex", alignItems: "center", gap: "8px" }}>
+            💡 Quick Questions
+          </h2>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "32px" }}>
+            {questions.map((q, idx) => (
+              <div 
+                key={idx}
+                onClick={() => setInput(q)}
+                style={{
+                  padding: "16px",
+                  background: "white",
+                  border: "1px solid #e5e7eb",
+                  borderLeft: "4px solid #16a34a",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  color: "#374151",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                  transition: "all 0.2s",
+                  fontWeight: "500"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"}
+                onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
+              >
+                {q}
+              </div>
             ))}
-          </ul>
+          </div>
+
+          <div>
+            <h3 style={{ fontSize: "12px", fontWeight: "bold", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "16px", marginTop: "0" }}>
+              Tips for better answers
+            </h3>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
+              {[
+                "Mention your crop name",
+                "Include your location",
+                "Describe the problem clearly"
+              ].map((tip, idx) => (
+                <li key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "14px", color: "#4b5563" }}>
+                  <span style={{ color: "#16a34a", marginTop: "2px" }}>✓</span>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* RIGHT PANEL */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#f9fafb", position: "relative" }}>
         
         {/* Header */}
-        <div style={{ padding: "20px 24px", background: "white", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <h2 style={{ margin: "0 0 4px 0", fontSize: "18px", color: "#16a34a", display: "flex", alignItems: "center", gap: "8px" }}>
-              🤖 KisanCore AI Assistant
-            </h2>
-            <p style={{ margin: 0, fontSize: "13px", color: "#6b7280" }}>
-              Powered by AI — Ask anything about farming
-            </p>
+        <div style={{ padding: isMobile ? "12px 15px" : "20px 24px", background: "white", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div>
+              <h2 style={{ margin: "0 0 4px 0", fontSize: isMobile ? "16px" : "18px", color: "#16a34a", display: "flex", alignItems: "center", gap: "8px" }}>
+                🤖 {isMobile ? "Assistant" : "KisanCore AI Assistant"}
+              </h2>
+              {!isMobile && (
+                <p style={{ margin: 0, fontSize: "13px", color: "#6b7280" }}>
+                  Powered by AI — Ask anything about farming
+                </p>
+              )}
+            </div>
           </div>
           
-          <button
-            onClick={() => {
-              setAutoSpeak(!autoSpeak);
-              if (autoSpeak && window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-              }
-            }}
-            style={{
-              display: "flex", alignItems: "center", gap: "6px",
-              padding: "8px 12px", borderRadius: "20px",
-              background: autoSpeak ? "#dcfce7" : "#f3f4f6",
-              color: autoSpeak ? "#166534" : "#4b5563",
-              border: "1px solid", borderColor: autoSpeak ? "#bbf7d0" : "#e5e7eb",
-              cursor: "pointer", fontSize: "13px",
-              fontWeight: "600", transition: "all 0.2s",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-            }}
-          >
-            {autoSpeak ? (
-              <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                </svg>
-                Auto-speak ON
-              </>
-            ) : (
-              <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <line x1="23" y1="9" x2="17" y2="15"></line>
-                  <line x1="17" y1="9" x2="23" y2="15"></line>
-                </svg>
-                Auto-speak OFF
-              </>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {isMobile && (
+              <button
+                onClick={() => setShowSidebar(!showSidebar)}
+                style={{
+                  padding: "8px 12px", borderRadius: "20px",
+                  background: showSidebar ? "#dcfce7" : "#f3f4f6",
+                  color: showSidebar ? "#166534" : "#4b5563",
+                  border: "1px solid", borderColor: showSidebar ? "#bbf7d0" : "#e5e7eb",
+                  cursor: "pointer", fontSize: "12px", fontWeight: "600"
+                }}
+              >
+                💡 Tips
+              </button>
             )}
-          </button>
+            
+            <button
+              onClick={() => {
+                setAutoSpeak(!autoSpeak);
+                if (autoSpeak && window.speechSynthesis) {
+                  window.speechSynthesis.cancel();
+                }
+              }}
+              style={{
+                display: "flex", alignItems: "center", gap: "6px",
+                padding: isMobile ? "8px" : "8px 12px", borderRadius: "20px",
+                background: autoSpeak ? "#dcfce7" : "#f3f4f6",
+                color: autoSpeak ? "#166534" : "#4b5563",
+                border: "1px solid", borderColor: autoSpeak ? "#bbf7d0" : "#e5e7eb",
+                cursor: "pointer", fontSize: "12px",
+                fontWeight: "600", transition: "all 0.2s",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+              }}
+            >
+              {autoSpeak ? (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                  </svg>
+                  {!isMobile && "Auto-speak ON"}
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                  </svg>
+                  {!isMobile && "Auto-speak OFF"}
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* MOBILE TIPS DROPDOWN OVERLAY */}
+          {isMobile && showSidebar && (
+            <div style={{
+              position: "absolute",
+              top: "100%",
+              right: "15px",
+              marginTop: "8px",
+              width: "280px",
+              background: "white",
+              borderRadius: "12px",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+              border: "1px solid #e5e7eb",
+              zIndex: 100,
+              padding: "20px",
+              animation: "fadeIn 0.2s ease-out"
+            }}>
+              <h3 style={{ margin: "0 0 15px 0", fontSize: "16px", color: "#111827", fontWeight: "700" }}>💡 Quick Questions</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {questions.map((q, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => {
+                      setInput(q);
+                      setShowSidebar(false);
+                    }}
+                    style={{
+                      padding: "10px 12px",
+                      background: "#f9fafb",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      color: "#374151"
+                    }}
+                  >
+                    {q}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Messages */}

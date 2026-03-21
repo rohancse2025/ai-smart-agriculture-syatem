@@ -35,6 +35,14 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [weatherLoading, setWeatherLoading] = useState(true);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const [soilInputs, setSoilInputs] = useState({ ph: "", nitrogen: "", moisture: "" });
   const [soilAnalysisResult, setSoilAnalysisResult] = useState<{score: number, tips: string[]} | null>(null);
 
@@ -153,10 +161,10 @@ export default function HomePage() {
         marginBottom: "40px",
         boxShadow: "0 10px 25px rgba(21, 128, 61, 0.2)"
       }}>
-        <h1 style={{ margin: "0 0 15px 0", fontSize: "36px", fontWeight: "800", letterSpacing: "-0.5px" }}>
+        <h1 style={{ margin: "0 0 15px 0", fontSize: "clamp(24px, 5vw, 36px)", fontWeight: "800", letterSpacing: "-0.5px" }}>
           Welcome to KisanCore AI
         </h1>
-        <p style={{ margin: "0 0 35px 0", fontSize: "20px", opacity: 0.9, fontWeight: "400" }}>
+        <p style={{ margin: "0 0 35px 0", fontSize: isMobile ? "16px" : "20px", opacity: 0.9, fontWeight: "400" }}>
           Smart Farming powered by AI and IoT
         </p>
         <div style={{ display: "flex", justifyContent: "center", gap: "15px", flexWrap: "wrap" }}>
@@ -276,8 +284,8 @@ export default function HomePage() {
         <h2 style={{ fontSize: "20px", color: "#111827", marginBottom: "20px", paddingLeft: "5px", fontWeight: 700 }}>Live Farm Data</h2>
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "20px"
+          gridTemplateColumns: isMobile ? "repeat(auto-fit, minmax(140px, 1fr))" : "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: isMobile ? "12px" : "20px"
         }}>
           {/* Card: Temp */}
           <div style={{ ...cardStyle, borderTop: "4px solid #ef4444" }}>
@@ -406,7 +414,7 @@ export default function HomePage() {
         <p style={{ paddingLeft: "5px", margin: "0 0 25px 0", color: "#6b7280", fontSize: "16px" }}>Quick soil health check</p>
         
         <div style={cardStyle}>
-          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", marginBottom: "20px" }}>
+          <div style={{ display: "flex", gap: "20px", flexDirection: isMobile ? "column" : "row", flexWrap: "wrap", marginBottom: "20px" }}>
             <div style={{ flex: "1 1 200px" }}>
               <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", color: "#4b5563" }}>Soil pH</label>
               <input 

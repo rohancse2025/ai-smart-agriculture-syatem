@@ -15,13 +15,21 @@ export default function App() {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const navItems = [
-    { path: "/", label: "Home" },
-    { path: "/crops", label: "Crops" },
-    { path: "/scan", label: "Scan" },
-    { path: "/iot", label: "IoT" },
-    { path: "/market", label: "Market" },
-    { path: "/chat", label: "Chat" },
+    { path: "/", label: "Home", icon: "🏠" },
+    { path: "/crops", label: "Crops", icon: "🌾" },
+    { path: "/scan", label: "Scan", icon: "🔍" },
+    { path: "/iot", label: "IoT", icon: "📡" },
+    { path: "/market", label: "Market", icon: "📊" },
+    { path: "/chat", label: "Chat", icon: "💬" },
   ];
 
   const languages = [
@@ -30,7 +38,7 @@ export default function App() {
     { code: "मर", name: "Marathi" },
     { code: "தமி", name: "Tamil" },
     { code: "తెలు", name: "Telugu" },
-    { code: "ಕನ್ನ", name: "Kannada" },
+    { code: "కన్న", name: "Kannada" },
   ];
 
   // Close dropdown when interacting outside
@@ -80,7 +88,7 @@ export default function App() {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "0 40px",
+        padding: isMobile ? "0 10px" : "0 40px",
         boxSizing: "border-box",
         height: "70px",
         boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
@@ -93,21 +101,22 @@ export default function App() {
           onClick={() => navigate("/")}
           style={{
             color: "white",
-            fontSize: "22px",
+            fontSize: isMobile ? "18px" : "22px",
             fontWeight: "bold",
             cursor: "pointer",
             display: "flex",
-            alignItems: "center"
+            alignItems: "center",
+            whiteSpace: "nowrap"
           }}
         >
-          🌿 KisanCore AI
+          🌿 {isMobile ? "KisanCore" : "KisanCore AI"}
         </div>
 
         {/* 2. Links & Translate (RIGHT) */}
-        <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: isMobile ? "8px" : "24px", alignItems: "center" }}>
           
           {/* Nav Links */}
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div style={{ display: "flex", gap: isMobile ? "2px" : "10px" }}>
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -118,7 +127,7 @@ export default function App() {
                     color: "white",
                     fontSize: "16px",
                     cursor: "pointer",
-                    padding: "10px 16px",
+                    padding: isMobile ? "8px" : "10px 16px",
                     borderRadius: "6px",
                     backgroundColor: isActive ? "rgba(255, 255, 255, 0.2)" : "transparent",
                     textDecoration: isActive ? "underline" : "none",
@@ -133,7 +142,7 @@ export default function App() {
                     if (!isActive) e.currentTarget.style.backgroundColor = "transparent";
                   }}
                 >
-                  {item.label}
+                  {isMobile ? item.icon : item.label}
                 </div>
               );
             })}
@@ -222,7 +231,7 @@ export default function App() {
         width: "100%",
         maxWidth: "1200px",
         margin: "0 auto",
-        padding: "30px 40px",
+        padding: isMobile ? "20px 15px" : "30px 40px",
         boxSizing: "border-box",
         animation: "fadeIn 0.3s ease-out"
       }}>

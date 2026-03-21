@@ -13,6 +13,14 @@ interface IrrigationSuggestion {
 
 export default function IoTPage() {
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
+  
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   const [history, setHistory] = useState<{ temp: number[]; hum: number[]; soil: number[] }>({
     temp: [26, 27, 28, 27, 28],
     hum: [62, 64, 65, 63, 65],
@@ -103,17 +111,18 @@ export default function IoTPage() {
       <section style={{
         background: "linear-gradient(135deg, #15803d 0%, #16a34a 100%)",
         borderRadius: "16px",
-        padding: "40px",
+        padding: isMobile ? "30px 20px" : "40px",
         color: "white",
         marginBottom: "20px",
         position: "relative",
-        boxShadow: "0 10px 25px rgba(21, 128, 61, 0.2)"
+        boxShadow: "0 10px 25px rgba(21, 128, 61, 0.2)",
+        textAlign: isMobile ? "center" : "left"
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "center" : "flex-start", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "20px" : "0" }}>
           <div>
-            <h1 style={{ margin: "0 0 10px 0", fontSize: "32px", fontWeight: "800" }}>📡 IoT Sensor Dashboard</h1>
-            <p style={{ margin: 0, fontSize: "18px", opacity: 0.9 }}>
-              Live farm sensor readings — auto-refreshes every 10 seconds
+            <h1 style={{ margin: "0 0 10px 0", fontSize: isMobile ? "24px" : "32px", fontWeight: "800" }}>📡 IoT Sensor Dashboard</h1>
+            <p style={{ margin: 0, fontSize: isMobile ? "16px" : "18px", opacity: 0.9 }}>
+              Live farm sensor readings — {isMobile ? "refreshes 10s" : "auto-refreshes every 10 seconds"}
             </p>
           </div>
           <div style={{
@@ -138,25 +147,30 @@ export default function IoTPage() {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "12px 20px",
+        flexDirection: isMobile ? "column" : "row",
+        gap: isMobile ? "12px" : "0",
+        padding: "16px 20px",
         backgroundColor: "white",
         borderRadius: "12px",
         marginBottom: "30px",
         boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-        border: "1px solid #e5e7eb"
+        border: "1px solid #e5e7eb",
+        textAlign: isMobile ? "center" : "left"
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{
-            width: "12px",
-            height: "12px",
-            borderRadius: "50%",
-            backgroundColor: connectionStatus === "connected" ? "#16a34a" : "#ca8a04"
-          }} />
-          <span style={{ fontWeight: "600", fontSize: "15px", color: "#374151" }}>
-            {connectionStatus === "connected" ? "ESP32 Connected" : "Using Mock Data"}
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexDirection: isMobile ? "column" : "row" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{
+              width: "12px",
+              height: "12px",
+              borderRadius: "50%",
+              backgroundColor: connectionStatus === "connected" ? "#16a34a" : "#ca8a04"
+            }} />
+            <span style={{ fontWeight: "600", fontSize: "15px", color: "#374151" }}>
+              {connectionStatus === "connected" ? "ESP32 Connected" : "Using Mock Data"}
+            </span>
+          </div>
           {isRefreshing && (
-            <span style={{ fontSize: "13px", color: "#16a34a", fontStyle: "italic", marginLeft: "10px" }}>
+            <span style={{ fontSize: "13px", color: "#16a34a", fontStyle: "italic" }}>
               Refreshing...
             </span>
           )}
@@ -169,7 +183,7 @@ export default function IoTPage() {
       {/* 3. MAIN SENSOR CARDS */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+        gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(300px, 1fr))",
         gap: "25px",
         marginBottom: "30px"
       }}>

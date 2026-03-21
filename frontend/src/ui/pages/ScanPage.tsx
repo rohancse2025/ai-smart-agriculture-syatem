@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const MOCK_RESULT = {
@@ -29,6 +29,14 @@ const TIPS = [
 export default function ScanPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const [preview, setPreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -86,19 +94,20 @@ export default function ScanPage() {
       <section style={{
         background: "linear-gradient(135deg, #15803d 0%, #16a34a 100%)",
         borderRadius: "16px",
-        padding: "40px",
+        padding: isMobile ? "30px 20px" : "40px",
         color: "white",
         marginBottom: "32px",
-        boxShadow: "0 4px 15px rgba(21, 128, 61, 0.2)"
+        boxShadow: "0 4px 15px rgba(21, 128, 61, 0.2)",
+        textAlign: isMobile ? "center" : "left"
       }}>
-        <h1 style={{ margin: "0 0 10px 0", fontSize: "34px", fontWeight: "800" }}>🔍 Plant Disease Scanner</h1>
-        <p style={{ margin: 0, fontSize: "18px", opacity: 0.9 }}>
+        <h1 style={{ margin: "0 0 10px 0", fontSize: isMobile ? "28px" : "34px", fontWeight: "800" }}>🔍 {isMobile ? "Plant Scanner" : "Plant Disease Scanner"}</h1>
+        <p style={{ margin: 0, fontSize: isMobile ? "16px" : "18px", opacity: 0.9 }}>
           Upload a photo of your plant leaf to detect diseases instantly
         </p>
       </section>
 
       {/* TWO-COLUMN LAYOUT */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "28px", marginBottom: "40px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(360px, 1fr))", gap: "28px", marginBottom: "40px" }}>
 
         {/* ===== LEFT COLUMN ===== */}
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -382,10 +391,10 @@ export default function ScanPage() {
 
       {/* COMMON DISEASES SECTION */}
       <section>
-        <h2 style={{ fontSize: "20px", fontWeight: "700", color: "#111827", margin: "0 0 20px 0" }}>
+        <h2 style={{ fontSize: "20px", fontWeight: "700", color: "#111827", margin: "0 0 20px 0", textAlign: isMobile ? "center" : "left" }}>
           📚 Common Plant Diseases
         </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
           {COMMON_DISEASES.map((d) => (
             <div key={d.name} style={{
               backgroundColor: "white",
