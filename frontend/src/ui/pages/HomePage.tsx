@@ -26,6 +26,44 @@ interface CropRecommendation {
   crop: string;
 }
 
+// Helper for dynamic tips
+const getDynamicTips = (temp: number, humidity: number, moisture: number, condition: string) => {
+  const conditionTips: { text: string; type: 'warning' | 'good' | 'info'; icon: string }[] = [];
+  
+  if (temp > 35) conditionTips.push({ text: "High heat alert — water your crops early morning before 7 AM to reduce evaporation", type: 'warning', icon: "🌡️" });
+  if (temp < 15) conditionTips.push({ text: "Cool weather — protect sensitive seedlings from cold stress with mulching", type: 'warning', icon: "🥶" });
+  if (humidity > 80) conditionTips.push({ text: "High humidity detected — watch for fungal diseases, avoid overhead watering today", type: 'warning', icon: "🍄" });
+  if (humidity < 40) conditionTips.push({ text: "Low humidity — increase irrigation frequency and mulch soil to retain moisture", type: 'warning', icon: "💧" });
+  if (moisture < 30) conditionTips.push({ text: "Soil is dry — irrigate your crops today, focus on root zone watering", type: 'warning', icon: "🚰" });
+  if (moisture > 70) conditionTips.push({ text: "Soil is too wet — stop irrigation, improve field drainage to avoid root rot", type: 'warning', icon: "⚠️" });
+  
+  const lowerCondition = condition.toLowerCase();
+  if (lowerCondition.includes("rain")) conditionTips.push({ text: "Rain expected — skip irrigation today and delay fertilizer application", type: 'warning', icon: "🌧️" });
+  if (lowerCondition.includes("cloud")) conditionTips.push({ text: "Cloudy day — good time to transplant seedlings or apply foliar spray", type: 'good', icon: "☁️" });
+
+  const generalTips: { text: string; type: 'warning' | 'good' | 'info'; icon: string }[] = [
+    { text: "Soil moisture is optimal — maintain current irrigation schedule", type: 'good', icon: "✅" },
+    { text: "Good conditions — ideal time to apply fertilizers for better absorption", type: 'good', icon: "🌱" },
+    { text: "Check your crop growth stage and adjust nutrients accordingly", type: 'info', icon: "📊" },
+    { text: "Inspect crops for pest activity during early morning hours", type: 'info', icon: "🐛" },
+    { text: "Consider inter-cropping to maximize yield and soil health", type: 'info', icon: "🌾" }
+  ];
+
+  // Always show exactly 3 tips. Prioritize condition-based.
+  let selected = [...conditionTips];
+  if (selected.length < 3) {
+    const dailyOffset = new Date().getDate() % generalTips.length;
+    for (let i = 0; i < generalTips.length && selected.length < 3; i++) {
+      const tip = generalTips[(dailyOffset + i) % generalTips.length];
+      if (!selected.find(s => s.text === tip.text)) {
+        selected.push(tip);
+      }
+    }
+  }
+
+  return selected.slice(0, 3);
+};
+
 export default function HomePage() {
   const navigate = useNavigate();
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
@@ -374,34 +412,35 @@ export default function HomePage() {
         <section>
           <h2 style={{ fontSize: "20px", color: "#111827", marginBottom: "20px", paddingLeft: "5px", fontWeight: 700 }}>Quick Tips</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-            
-            <div style={{...cardStyle, padding: "20px", display: "flex", alignItems: "center", gap: "15px"}}>
-              <div style={iconContainerStyle("#fff8e1")}>
-                <span style={{ fontSize: "20px" }}>⏱️</span>
-              </div>
-              <p style={{ margin: 0, color: "#4b5563", fontSize: "16px", lineHeight: 1.4 }}>
-                Monitor soil moisture daily for best yield
-              </p>
-            </div>
-            
-            <div style={{...cardStyle, padding: "20px", display: "flex", alignItems: "center", gap: "15px"}}>
-              <div style={iconContainerStyle("#e3f2fd")}>
-                <span style={{ fontSize: "20px" }}>🌦️</span>
-              </div>
-              <p style={{ margin: 0, color: "#4b5563", fontSize: "16px", lineHeight: 1.4 }}>
-                Check weather before applying pesticides
-              </p>
-            </div>
-            
-            <div style={{...cardStyle, padding: "20px", display: "flex", alignItems: "center", gap: "15px"}}>
-              <div style={iconContainerStyle("#f1f8e9")}>
-                <span style={{ fontSize: "20px" }}>🔄</span>
-              </div>
-              <p style={{ margin: 0, color: "#4b5563", fontSize: "16px", lineHeight: 1.4 }}>
-                Rotate crops every season for soil health
-              </p>
-            </div>
-            
+            {getDynamicTips(
+              sensorData?.temperature || 25,
+              sensorData?.humidity || 50,
+              sensorData?.soil_moisture || 50,
+              weatherData?.condition || "Sunny"
+            ).map((tip, idx) => {
+              const borderColors = { warning: "#f59e0b", good: "#16a34a", info: "#3b82f6" };
+              const bgIcons = { warning: "#fff3e0", good: "#e8f5e9", info: "#e3f2fd" };
+              
+              return (
+                <div key={idx} style={{
+                  ...cardStyle, 
+                  padding: "20px", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "15px",
+                  borderLeft: `5px solid ${borderColors[tip.type]}`,
+                  borderTopLeftRadius: "4px",
+                  borderBottomLeftRadius: "4px"
+                }}>
+                  <div style={iconContainerStyle(bgIcons[tip.type])}>
+                    <span style={{ fontSize: "20px" }}>{tip.icon}</span>
+                  </div>
+                  <p style={{ margin: 0, color: "#4b5563", fontSize: "16px", lineHeight: 1.4 }}>
+                    {tip.text}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>

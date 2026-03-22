@@ -38,6 +38,26 @@ export default function CropsPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    // Fetch live sensor data for Temperature and Humidity
+    const fetchSensorData = async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/v1/sensor-data");
+        if (res.ok) {
+          const data = await res.json();
+          setInputs(prev => ({
+            ...prev,
+            temperature: data.temperature ?? prev.temperature,
+            humidity: data.humidity ?? prev.humidity
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch sensor data:", err);
+      }
+    };
+    fetchSensorData();
+  }, []);
+
   // --- CROP RECOMMENDATION STATE ---
   const [inputs, setInputs] = useState({
     N: 65,
@@ -91,13 +111,13 @@ export default function CropsPage() {
   };
 
   const sliders = [
-    { name: "N", label: "Nitrogen (N)", min: 0, max: 140, step: 1 },
-    { name: "P", label: "Phosphorus (P)", min: 0, max: 140, step: 1 },
-    { name: "K", label: "Potassium (K)", min: 0, max: 200, step: 1 },
-    { name: "temperature", label: "Temperature (°C)", min: 0, max: 50, step: 0.1 },
-    { name: "humidity", label: "Humidity (%)", min: 0, max: 100, step: 1 },
-    { name: "ph", label: "Soil pH", min: 0, max: 14, step: 0.1 },
-    { name: "rainfall", label: "Rainfall (mm)", min: 0, max: 300, step: 1 },
+    { name: "N", label: "Nitrogen (N)", min: 0, max: 140, step: 1, hint: "From your Soil Health Card or Krishi Kendra test" },
+    { name: "P", label: "Phosphorus (P)", min: 0, max: 140, step: 1, hint: "From your Soil Health Card or Krishi Kendra test" },
+    { name: "K", label: "Potassium (K)", min: 0, max: 200, step: 1, hint: "From your Soil Health Card or Krishi Kendra test" },
+    { name: "temperature", label: "Temperature (°C)", min: 0, max: 50, step: 0.1, hint: "Auto-filled from your weather data" },
+    { name: "humidity", label: "Humidity (%)", min: 0, max: 100, step: 1, hint: "Auto-filled from your weather data" },
+    { name: "ph", label: "Soil pH", min: 0, max: 14, step: 0.1, hint: "From Soil Health Card. Normal range: 6.0-7.5" },
+    { name: "rainfall", label: "Rainfall (mm)", min: 0, max: 300, step: 1, hint: "Check your district's average annual rainfall online" },
   ];
 
   // --- FERTILIZER RECOMMENDATION STATE ---
@@ -241,13 +261,39 @@ export default function CropsPage() {
             }}>
               <h2 style={{ margin: "0 0 20px 0", color: "#111827", fontSize: "20px", fontWeight: "700" }}>Farm Parameters</h2>
               
+              {/* INFO CARD */}
+              <div style={{
+                backgroundColor: "#eff6ff",
+                borderLeft: "4px solid #3b82f6",
+                borderRadius: "8px",
+                padding: "12px",
+                fontSize: "13px",
+                color: "#1e40af",
+                marginBottom: "20px",
+                lineHeight: "1.5"
+              }}>
+                ℹ️ <strong>Don't know your soil values?</strong> Get a FREE Soil Health Card from your nearest Krishi Kendra (Agriculture Office). It has all N, P, K and pH values.
+              </div>
+              
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: isMobile ? "20px" : "30px", marginBottom: "25px" }}>
                 {sliders.map(slider => {
                   const currentValue = inputs[slider.name as keyof typeof inputs];
                   return (
                     <div key={slider.name}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", alignItems: "center" }}>
-                        <label style={{ fontWeight: "600", color: "#4b5563" }}>{slider.label}</label>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", alignItems: "flex-start" }}>
+                        <div>
+                          <label style={{ fontWeight: "600", color: "#4b5563", display: "flex", alignItems: "center" }}>
+                            {slider.label}
+                            {(slider.name === "temperature" || slider.name === "humidity") && (
+                              <span style={{ marginLeft: "8px", color: "#16a34a", fontSize: "12px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "4px" }}>
+                                <span style={{ color: "#ef4444", fontSize: "10px" }}>🔴</span> Live
+                              </span>
+                            )}
+                          </label>
+                          <div style={{ fontSize: "11px", color: "#9ca3af", fontStyle: "italic", marginTop: "2px" }}>
+                            {slider.hint}
+                          </div>
+                        </div>
                         <span style={{ fontWeight: "bold", color: "#15803d", fontSize: "18px" }}>
                           {currentValue}
                         </span>
