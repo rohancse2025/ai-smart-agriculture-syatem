@@ -19,9 +19,6 @@ if cors_origins:
 
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
-# Explicitly register IoT router as requested
-from app.api.routes import iot
-app.include_router(iot.router, prefix=f"{settings.api_v1_prefix}/iot", tags=["iot"])
 
 
 @app.get("/health")
