@@ -129,6 +129,14 @@ body {
   animation: dotBounce 1.4s infinite ease-in-out both;
 }
 
+@keyframes slideUpBanner {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up-banner {
+  animation: slideUpBanner 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* UTILITIES */
 .hover-lift {
   transition: transform 0.2s ease-out;

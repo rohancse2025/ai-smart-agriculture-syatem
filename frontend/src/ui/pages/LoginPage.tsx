@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 
-export default function LoginPage() {
+export default function LoginPage({ lang }: { lang: string }) {
+  const { t } = useTranslation(lang);
   const [isRegister, setIsRegister] = useState(false);
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -43,8 +45,8 @@ export default function LoginPage() {
       
       <div className="bg-white rounded-b-3xl shadow-xl overflow-hidden max-w-md w-full mx-auto">
         <div className="flex border-b border-gray-100">
-          <button className={`flex-1 py-4 font-black ${!isRegister ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-400'}`} onClick={() => setIsRegister(false)}>LOGIN</button>
-          <button className={`flex-1 py-4 font-black ${isRegister ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-400'}`} onClick={() => setIsRegister(true)}>REGISTER</button>
+          <button className={`flex-1 py-4 font-black ${!isRegister ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-400'}`} onClick={() => setIsRegister(false)}>{t('auth_login').toUpperCase()}</button>
+          <button className={`flex-1 py-4 font-black ${isRegister ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-400'}`} onClick={() => setIsRegister(true)}>{t('auth_register').toUpperCase()}</button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 pb-10">
@@ -57,11 +59,11 @@ export default function LoginPage() {
           )}
 
           <div className="mb-4">
-             <input placeholder="Phone Number" required className="w-full bg-gray-50 border border-gray-200 px-4 py-3 rounded-xl font-bold focus:border-green-500 outline-none" onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+             <input placeholder={t('auth_phone')} required className="w-full bg-gray-50 border border-gray-200 px-4 py-3 rounded-xl font-bold focus:border-green-500 outline-none" onChange={(e) => setFormData({...formData, phone: e.target.value})} />
           </div>
 
           <div className="mb-4">
-             <input placeholder="Password" type="password" required className="w-full bg-gray-50 border border-gray-200 px-4 py-3 rounded-xl font-bold focus:border-green-500 outline-none" onChange={(e) => setFormData({...formData, password: e.target.value})} />
+             <input placeholder={t('auth_password')} type="password" required className="w-full bg-gray-50 border border-gray-200 px-4 py-3 rounded-xl font-bold focus:border-green-500 outline-none" onChange={(e) => setFormData({...formData, password: e.target.value})} />
           </div>
 
           {isRegister && (
@@ -75,8 +77,8 @@ export default function LoginPage() {
             </>
           )}
 
-          <button className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl transition-all active:scale-95 mt-4 box-shadow-md">
-            {isRegister ? "Create Account" : "Access Farm Dashboard"}
+          <button className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl transition-all active:scale-[0.98] mt-4 box-shadow-md">
+            {isRegister ? t('auth_create_account') : t('auth_access_dashboard')}
           </button>
         </form>
       </div>

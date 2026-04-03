@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from groq import Groq
+from app.core.settings import settings
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -58,9 +59,9 @@ Example output format:
 @router.post("", response_model=CropRecommendationResponse)
 @router.post("/", response_model=CropRecommendationResponse)
 async def recommend_crops(data: CropInput):
-    api_key = os.environ.get("GROQ_API_KEY", "").strip()
+    api_key = settings.groq_api_key
     if not api_key:
-        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not set in environment")
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not set in settings")
     
     # Check cache first (using a simple key based on inputs)
     cache_key = f"{data.nitrogen}_{data.phosphorus}_{data.potassium}_{round(data.temperature,1)}_{round(data.humidity,1)}_{data.ph}_{data.rainfall}"
@@ -83,7 +84,7 @@ async def recommend_crops(data: CropInput):
     try:
         client = Groq(api_key=api_key)
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # Switched from 70b to 8b for higher rate limits
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}

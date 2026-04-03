@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     environment: str = "dev"
     api_v1_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:5173"
+    groq_api_key: str = ""
 
 
 settings = Settings()

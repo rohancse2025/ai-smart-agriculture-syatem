@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const MOCK_RESULT = {
   disease: "Tomato Early Blight",
@@ -26,8 +27,9 @@ const TIPS = [
   "Avoid shadows on the leaf",
 ];
 
-export default function ScanPage() {
+export default function ScanPage({ lang }: { lang: string }) {
   const navigate = useNavigate();
+  const { t } = useTranslation(lang);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -120,7 +122,7 @@ export default function ScanPage() {
       
       {/* PAGE HEADER */}
       <section className={`bg-gradient-to-br from-green-800 to-green-600 rounded-2xl p-8 md:p-10 text-white mb-8 shadow-lg shadow-green-700/20 ${isMobile ? 'text-center' : 'text-left'}`}>
-        <h1 className={`m-0 mb-2.5 ${isMobile ? 'text-2xl' : 'text-3xl'} font-extrabold tracking-tight`}>🔍 {isMobile ? "Plant Scanner" : "Plant Disease Scanner"}</h1>
+        <h1 className={`m-0 mb-2.5 ${isMobile ? 'text-2xl' : 'text-3xl'} font-extrabold tracking-tight`}>🔍 {isMobile ? t('scan_title') : t('scan_title')}</h1>
         <p className={`m-0 ${isMobile ? 'text-base' : 'text-lg'} opacity-90`}>
           Upload a photo of your plant leaf to detect diseases instantly
         </p>
@@ -185,9 +187,9 @@ export default function ScanPage() {
             {isAnalyzing ? (
               <>
                 <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                Analyzing Image...
+                {t('scan_analyzing')}...
               </>
-            ) : "Start Analysis"}
+            ) : t('scan_take_photo')}
           </button>
 
           {/* TIPS CARD */}

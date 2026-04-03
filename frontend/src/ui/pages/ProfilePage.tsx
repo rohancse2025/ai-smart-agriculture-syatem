@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 
-export default function ProfilePage() {
+export default function ProfilePage({ lang }: { lang: string }) {
+  const { t } = useTranslation(lang);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,7 +28,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const farmer = JSON.parse(localStorage.getItem('kisancore_farmer') || 'null');
     if (!farmer) {
-      navigate('/login');
+      setLoading(false);
       return;
     }
 
@@ -132,7 +134,68 @@ export default function ProfilePage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-gray-500 font-bold">Loading your profile...</p>
+        <p className="text-gray-500 font-bold">{t('common_loading')}</p>
+      </div>
+    );
+  }
+
+  const isLoggedIn = !!localStorage.getItem('kisancore_farmer');
+
+  if (!isLoggedIn) {
+    return (
+      <div className="max-w-4xl mx-auto py-12 px-6 animate-fade-in">
+        <div className="bg-gradient-to-br from-green-600 to-teal-700 rounded-[3rem] p-12 text-center text-white shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+            <div className="absolute top-10 left-10 text-6xl rotate-12">🌿</div>
+            <div className="absolute bottom-10 right-10 text-6xl -rotate-12">🚜</div>
+            <div className="absolute top-1/2 left-1/4 text-4xl opacity-20">🌾</div>
+          </div>
+          
+          <div className="relative z-10">
+            <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-5xl mb-8 mx-auto shadow-inner border border-white/30">
+              👨‍🌾
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
+              Your Personal Farm <br />Identity Awaits 🚀
+            </h1>
+            <p className="text-green-50 text-xl font-medium mb-12 max-w-2xl mx-auto opacity-90 leading-relaxed">
+              Join the KisanCore community to save your soil records, track crop history, and get SMS alerts tailored to your exact location.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-5 justify-center">
+              <button 
+                onClick={() => navigate('/login')}
+                className="bg-white text-green-700 px-10 py-5 rounded-2xl font-black text-xl shadow-2xl hover:bg-green-50 transition-all active:scale-95"
+              >
+                Create Farm Profile 
+              </button>
+              <button 
+                onClick={() => navigate('/')}
+                className="bg-green-500/30 backdrop-blur-md border border-white/20 text-white px-10 py-5 rounded-2xl font-black text-xl hover:bg-green-500/40 transition-all"
+              >
+                Continue as Guest
+              </button>
+            </div>
+
+            <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+               <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/10">
+                  <p className="text-3xl mb-2">📊</p>
+                  <p className="font-black text-sm uppercase tracking-widest mb-1">Yield Tracking</p>
+                  <p className="text-xs text-green-100 opacity-80">Monitor your farm's growth season by season</p>
+               </div>
+               <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/10">
+                  <p className="text-3xl mb-2">🌤️</p>
+                  <p className="font-black text-sm uppercase tracking-widest mb-1">Local Alerts</p>
+                  <p className="text-xs text-green-100 opacity-80">Get weather warnings specific to your village</p>
+               </div>
+               <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/10">
+                  <p className="text-3xl mb-2">📜</p>
+                  <p className="font-black text-sm uppercase tracking-widest mb-1">Soil History</p>
+                  <p className="text-xs text-green-100 opacity-80">Keep a permanent digital record of your soil health</p>
+               </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -148,7 +211,7 @@ export default function ProfilePage() {
           >
             ← Back to Dashboard
           </button>
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white m-0">Edit Profile</h1>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white m-0">{t('profile_title')}</h1>
         </div>
         <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center text-3xl shadow-sm border border-green-200 dark:border-green-800">
           👨‍🌾
@@ -329,21 +392,21 @@ export default function ProfilePage() {
           <button 
             type="submit"
             disabled={saving}
-            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-black py-4 rounded-2xl text-lg shadow-xl shadow-green-600/20 transition-all active:scale-95 flex items-center justify-center gap-3"
+            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-black py-4 rounded-2xl text-lg shadow-xl shadow-green-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
           >
             {saving ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Saving...
+                {t('common_loading')}
               </>
-            ) : "Save Changes"}
+            ) : t('profile_save')}
           </button>
           <button 
             type="button"
             onClick={() => navigate('/')}
             className="px-10 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 font-black rounded-2xl hover:bg-gray-200 transition-all"
           >
-            Cancel
+            {t('common_cancel')}
           </button>
         </div>
 
@@ -356,14 +419,14 @@ export default function ProfilePage() {
                 onClick={handleLogout}
                 className="flex-1 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-400 font-black py-4 rounded-2xl hover:bg-gray-100 transition-all"
               >
-                Logout Session
+                {t('profile_logout')}
               </button>
               <button 
                 type="button"
                 onClick={handleDelete}
                 className="flex-1 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 text-red-600 font-black py-4 rounded-2xl hover:bg-red-100 transition-all"
               >
-                Permanently Delete Account
+                {t('profile_delete')}
               </button>
            </div>
            <p className="text-[10px] text-gray-400 mt-4 text-center font-medium">Deleting your account will remove all crop data and history forever.</p>

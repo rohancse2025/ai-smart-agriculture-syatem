@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type Message = {
   id: string;
@@ -15,13 +16,23 @@ const INITIAL_MESSAGE: Message = {
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 };
 
-export default function ChatPage() {
+const LANG_OPTIONS = [
+  { code: 'EN', label: 'English', hint: 'Type in English', voice: 'en-IN' },
+  { code: 'HI', label: 'हिंदी', hint: 'हिंदी में लिखें', voice: 'hi-IN' },
+  { code: 'MR', label: 'मराठी', hint: 'मराठीत लिहा', voice: 'mr-IN' },
+  { code: 'KN', label: 'ಕನ್ನಡ', hint: 'ಕನ್ನಡದಲ್ಲಿ ಬರೆಯಿರಿ', voice: 'kn-IN' },
+  { code: 'TA', label: 'தமிழ்', hint: 'தமிழில் எழுதுங்கள்', voice: 'ta-IN' }
+];
+
+export default function ChatPage({ lang }: { lang: string }) {
+  const { t } = useTranslation(lang);
   const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState((location.state as any)?.prefill || "");
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [chatLang, setChatLang] = useState('EN');
   
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showSidebar, setShowSidebar] = useState(false);
@@ -57,12 +68,19 @@ export default function ChatPage() {
     window.speechSynthesis.cancel();
     const cleanText = text.replace(/[*#]/g, '').trim();
     if (!cleanText) return;
+    
     const utterance = new SpeechSynthesisUtterance(cleanText);
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(v => v.lang.replace('_', '-') === 'hi-IN') || 
+    
+    // Find voice matching select language
+    const currentLang = LANG_OPTIONS.find(l => l.code === chatLang);
+    const preferredLangCode = currentLang?.voice || 'en-IN';
+    
+    const preferredVoice = voices.find(v => v.lang.replace('_', '-') === preferredLangCode) || 
+                           voices.find(v => v.lang.replace('_', '-') === 'hi-IN') ||
                            voices.find(v => v.lang.replace('_', '-') === 'en-IN') || 
-                           voices.find(v => v.lang.startsWith('hi')) ||
                            voices[0];
+                           
     if (preferredVoice) utterance.voice = preferredVoice;
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
@@ -82,7 +100,10 @@ export default function ChatPage() {
     }
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
-    recognition.lang = 'en-US'; 
+    
+    // Use select language for recognition
+    const currentLang = LANG_OPTIONS.find(l => l.code === chatLang);
+    recognition.lang = currentLang?.voice || 'en-IN'; 
     recognition.interimResults = false;
     recognition.continuous = false;
     recognition.onstart = () => setIsListening(true);
@@ -109,9 +130,10 @@ export default function ChatPage() {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+    
     const userMsg: Message = {
       id: Date.now().toString(),
-      text: input.trim(),
+      text: chatLang !== 'EN' ? `[${chatLang}] ${input.trim()}` : input.trim(),
       sender: 'user',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
@@ -177,6 +199,22 @@ export default function ChatPage() {
     if (e.key === 'Enter') handleSend();
   };
 
+  const handleLangChange = (code: string) => {
+    const lang = LANG_OPTIONS.find(l => l.code === code);
+    if (!lang) return;
+    
+    setChatLang(code);
+    
+    // Add system message for language change
+    const systemMsg: Message = {
+      id: `sys-${Date.now()}`,
+      text: `🌐 Language changed to ${lang.label}. You can now type or speak in ${lang.label}.`,
+      sender: 'ai',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setMessages(prev => [...prev, systemMsg]);
+  };
+
   return (
     <div className="flex h-[calc(100vh-140px)] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden w-full border border-gray-100 dark:border-slate-800">
       
@@ -230,7 +268,7 @@ export default function ChatPage() {
             <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-full flex items-center justify-center text-3xl">🤖</div>
             <div>
               <h2 className="m-0 text-[#16a34a] text-lg font-black tracking-tight">
-                KisanCore AI Assistant
+                {t('chat_title')}
               </h2>
               <p className="m-0 text-xs text-gray-400 dark:text-slate-500 font-bold">
                 Powered by AI — Ask anything about farming
@@ -293,6 +331,23 @@ export default function ChatPage() {
           <div ref={messagesEndRef} className="h-4" />
         </div>
 
+        {/* Language Pill Selector */}
+        <div className="px-6 py-3 bg-gray-50/50 dark:bg-slate-900/50 border-t border-gray-100 dark:border-slate-800 flex gap-2 flex-wrap items-center">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-2">Language:</span>
+          {LANG_OPTIONS.map(opt => (
+            <button
+              key={opt.code}
+              onClick={() => handleLangChange(opt.code)}
+              className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all border
+                ${chatLang === opt.code 
+                   ? 'bg-[#16a34a] text-white border-[#16a34a] shadow-sm' 
+                   : 'bg-white dark:bg-slate-800 text-gray-500 border-gray-100 dark:border-slate-700 hover:bg-green-50'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         {/* Input Area */}
         <div className="p-6 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex gap-4 items-center">
           <button
@@ -312,7 +367,7 @@ export default function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isListening ? "Listening..." : "Ask KisanCore assistant anything about farming..."}
+            placeholder={isListening ? "Listening..." : (LANG_OPTIONS.find(l => l.code === chatLang)?.hint || t('chat_placeholder'))}
             className="flex-1 h-12 px-6 bg-gray-50 dark:bg-slate-800 border-none rounded-2xl text-[15px] outline-none text-gray-800 dark:text-white transition-all focus-ring-green font-medium"
           />
           
@@ -322,10 +377,7 @@ export default function ChatPage() {
             className={`w-12 h-12 rounded-full text-white border-none flex items-center justify-center cursor-pointer transition-all flex-shrink-0 shadow-lg ripple
               ${(!input.trim() || isLoading) ? 'bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed' : 'bg-[#16a34a] hover:bg-[#15803d] active:scale-95'}`}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
+            {t('chat_send')}
           </button>
         </div>
       </div>

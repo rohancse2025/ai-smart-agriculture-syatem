@@ -8,6 +8,8 @@ import IoTPage from "./pages/IoTPage";
 import ChatPage from "./pages/ChatPage";
 import MarketPage from "./pages/MarketPage";
 import ProfilePage from "./pages/ProfilePage";
+import { useTranslation } from "../hooks/useTranslation";
+import OfflineBanner from "./components/OfflineBanner";
 
 export default function App() {
   const navigate = useNavigate();
@@ -15,6 +17,24 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const farmer = JSON.parse(localStorage.getItem('kisancore_farmer') || 'null');
   const isLoggedIn = !!farmer;
+
+  // BACKGROUND SYNC NOTIFICATION
+  const [syncToast, setSyncToast] = useState<{ show: boolean, count: number }>({ show: false, count: 0 });
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    const handleSyncMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'SYNC_DONE') {
+        setSyncToast({ show: true, count: event.data.count || 0 });
+        // Auto-hide after 5 seconds
+        setTimeout(() => setSyncToast({ show: false, count: 0 }), 5000);
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleSyncMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', handleSyncMessage);
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
@@ -53,6 +73,7 @@ export default function App() {
 
   // LANGUAGE DROP-DOWN Logic
   const [lang, setLang] = useState("EN");
+  const { t } = useTranslation(lang);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -86,12 +107,12 @@ export default function App() {
   }, []);
 
   const navLinks = [
-    { path: "/", label: "Home" },
-    { path: "/crops", label: "Crops" },
-    { path: "/scan", label: "Scan" },
-    { path: "/iot", label: "IoT" },
-    { path: "/market", label: "Market" },
-    { path: "/chat", label: "Chat" },
+    { path: "/", label: t('nav_home') },
+    { path: "/crops", label: t('nav_crops') },
+    { path: "/scan", label: t('nav_scan') },
+    { path: "/iot", label: t('nav_iot') },
+    { path: "/market", label: t('nav_market') },
+    { path: "/chat", label: t('nav_chat') },
   ];
 
   const languages = [
@@ -185,7 +206,7 @@ export default function App() {
                 onClick={handleInstallClick}
                 className="hidden md:flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-lg shadow-green-600/20 active:scale-95 pl-0"
               >
-                📲 Install App
+                📲 {t('app_install')}
               </button>
             )}
 
@@ -195,7 +216,7 @@ export default function App() {
                 onClick={() => navigate('/login')}
                 className="hidden md:flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 px-6 py-2.5 rounded-xl text-xs font-black transition-all shadow-lg shadow-green-600/20 active:scale-95 group/login"
               >
-                <span>Login 👨‍🌾</span>
+                <span>{t('app_login')} 👨‍🌾</span>
                 <span className="group-hover:translate-x-1 transition-transform">→</span>
               </button>
             ) : (
@@ -211,7 +232,7 @@ export default function App() {
                   onClick={() => { localStorage.removeItem('kisancore_farmer'); window.location.reload(); }}
                   className="text-gray-400 hover:text-red-500 transition-all font-black text-[10px] uppercase tracking-widest pl-0"
                 >
-                  Logout
+                  {t('app_logout')}
                 </button>
               </div>
             )}
@@ -246,7 +267,7 @@ export default function App() {
               </Link>
             ))}
             <div className="mt-8 pt-8 border-t border-gray-100 dark:border-slate-800">
-               <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4">Select Language</p>
+               <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4">{t('auth_login')} / {t('app_profile')}</p>
                <div className="flex gap-4">
                  {languages.map(l => (
                    <button 
@@ -260,21 +281,45 @@ export default function App() {
                </div>
             </div>
 
-            {/* LOGIN BUTTON (Mobile) */}
+            {/* MOBILE ACTION BUTTON */}
             {!isLoggedIn ? (
-              <button 
-                onClick={() => navigate('/login')}
-                className="mt-4 w-full flex items-center justify-center gap-2 bg-white border-2 border-green-600 text-green-600 py-4 rounded-2xl text-lg font-black shadow-sm"
-              >
-                Login 👨‍🌾
-              </button>
+              <div className="mt-8 flex flex-col gap-4">
+                <button 
+                  onClick={() => { setShowMobileMenu(false); navigate('/login'); }}
+                  className="w-full flex items-center justify-center gap-3 bg-green-600 text-white py-4 rounded-2xl text-lg font-black shadow-lg shadow-green-600/20 active:scale-95"
+                >
+                  {t('app_login')} 👨‍🌾
+                </button>
+                <button 
+                  onClick={() => setShowMobileMenu(false)}
+                  className="w-full py-4 text-gray-400 font-bold text-sm uppercase tracking-widest bg-transparent border-none"
+                >
+                  Continue as Guest
+                </button>
+              </div>
             ) : (
-              <button 
-                onClick={() => { localStorage.removeItem('kisancore_farmer'); window.location.reload(); }}
-                className="mt-4 w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 py-4 rounded-2xl text-lg font-black shadow-sm"
-              >
-                Logout
-              </button>
+              <div className="mt-8 flex flex-col gap-4">
+                <Link 
+                  to="/profile"
+                  onClick={() => setShowMobileMenu(false)}
+                  className="w-full flex items-center justify-between bg-gray-50 dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 no-underline"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="text-3xl">👤</span>
+                    <div>
+                      <p className="m-0 font-black text-gray-900 dark:text-white">{farmer.name}</p>
+                      <p className="m-0 text-xs text-gray-400 font-bold uppercase tracking-widest">{t('app_profile')}</p>
+                    </div>
+                  </div>
+                  <span className="text-gray-300">→</span>
+                </Link>
+                <button 
+                  onClick={() => { localStorage.removeItem('kisancore_farmer'); window.location.reload(); }}
+                  className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 py-4 rounded-2xl text-lg font-black shadow-sm"
+                >
+                  {t('app_logout')}
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -287,14 +332,14 @@ export default function App() {
           className={`max-w-[1200px] mx-auto p-5 md:px-12 md:py-8 transition-all animate-fade-in`}
         >
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<HomePage />} />
-            <Route path="/crops" element={<CropsPage />} />
-            <Route path="/scan" element={<ScanPage />} />
-            <Route path="/iot" element={<IoTPage />} />
-            <Route path="/market" element={<MarketPage />} />
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/login" element={<LoginPage lang={lang} />} />
+            <Route path="/" element={<HomePage lang={lang} />} />
+            <Route path="/crops" element={<CropsPage lang={lang} />} />
+            <Route path="/scan" element={<ScanPage lang={lang} />} />
+            <Route path="/iot" element={<IoTPage lang={lang} />} />
+            <Route path="/market" element={<MarketPage lang={lang} />} />
+            <Route path="/chat" element={<ChatPage lang={lang} />} />
+            <Route path="/profile" element={<ProfilePage lang={lang} />} />
           </Routes>
         </div>
       </main>
@@ -325,10 +370,35 @@ export default function App() {
           <div className="flex flex-col items-center gap-4">
              <span className="text-xl">🌿</span>
              <p className="text-sm font-black text-green-600 uppercase tracking-widest m-0">KisanCore AI</p>
-             <p className="text-gray-400 text-xs m-0">© 2026 Developed with ❤️ for Smart Farmers</p>
+             <p className="text-gray-400 text-xs m-0">© 2026 {t('app_footer_credit')}</p>
           </div>
         </footer>
       )}
+
+      {/* 6. SYNC TOAST NOTIFICATION */}
+      {syncToast.show && (
+        <div className="fixed bottom-6 left-6 z-[1000] animate-slide-up">
+          <div className="bg-green-600 dark:bg-green-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20 backdrop-blur-md">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl animate-bounce">
+              ✅
+            </div>
+            <div>
+              <p className="m-0 font-black text-sm uppercase tracking-wider">{t('sync_success_title')}</p>
+              <p className="m-0 text-xs opacity-90 font-bold">
+                {syncToast.count} {t('sync_success_desc')}
+              </p>
+            </div>
+            <button 
+              onClick={() => setSyncToast({ show: false, count: 0 })}
+              className="ml-4 text-white/50 hover:text-white transition-colors bg-transparent border-none p-1 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      <OfflineBanner />
     </div>
   );
 }

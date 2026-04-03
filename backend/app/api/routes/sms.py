@@ -1,56 +1,75 @@
 from fastapi import APIRouter, Form
 from pydantic import BaseModel
-import requests
 import os
+import logging
 from dotenv import load_dotenv
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
+from fastapi.responses import Response
 
 load_dotenv()
 router = APIRouter()
 
-FAST2SMS_KEY = os.getenv("FAST2SMS_API_KEY", "")
+# Twilio Config
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_SMS_FROM = os.getenv("TWILIO_SMS_FROM", "")
+
+logger = logging.getLogger(__name__)
 
 class SMSRequest(BaseModel):
   to_phone: str
   message_type: str
   data: dict
 
-def send_sms_fast2sms(phone: str, message: str):
-  if not FAST2SMS_KEY:
-    return False, "Fast2SMS key not configured"
+def send_sms_twilio(phone: str, message: str) -> tuple[bool, str]:
+  """
+  Sends a standard SMS using Twilio.
+  Normalizes Indian phone numbers to E.164 format (+91...).
+  """
+  if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+    return False, "Twilio credentials not configured"
+
   try:
-    clean_phone = phone.replace("+91", "").strip()
-    url = "https://www.fast2sms.com/dev/bulkV2"
-    payload = {
-      "route": "q",
-      "message": message,
-      "language": "english",
-      "flash": 0,
-      "numbers": clean_phone,
-    }
-    headers = {
-      "authorization": FAST2SMS_KEY,
-      "Content-Type": "application/json"
-    }
-    response = requests.post(url, json=payload, headers=headers, timeout=10)
-    result = response.json()
-    print(f"Fast2SMS Response: {result}")
+    # Normalize phone: 9876543210 -> +919876543210
+    clean_phone = phone.strip().replace(" ", "").replace("-", "")
+    if not clean_phone.startswith("+"):
+        if clean_phone.startswith("91") and len(clean_phone) == 12:
+            clean_phone = "+" + clean_phone
+        else:
+            # Assume 10-digit Indian number
+            if len(clean_phone) == 10:
+                clean_phone = "+91" + clean_phone
+            else:
+                # Fallback: just prepend plus if missing
+                clean_phone = "+" + clean_phone
+
+    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+    msg = client.messages.create(
+        body=message,
+        from_=TWILIO_SMS_FROM,
+        to=clean_phone
+    )
     
-    if result.get("return") is True:
-        return True, "Sent"
-    else:
-        # result.get("message") is often a list
-        msg = result.get("message", "Unknown error")
-        if isinstance(msg, list): msg = msg[0]
-        return False, msg
+    return True, f"Sent: {msg.sid}"
+
+  except TwilioRestException as e:
+    # Special handling for unverified numbers in Free Trial (code 21608)
+    if e.code == 21608:
+        logger.warning(f"Twilio Trial Error: {clean_phone} is unverified. Please verify this number in Twilio Console.")
+        return False, f"Unverified number: {e.msg}"
+    return False, str(e)
   except Exception as e:
-    print(f"Fast2SMS Exception: {e}")
+    logger.error(f"Twilio General Error: {e}")
     return False, str(e)
 
-def send_sms(to: str, message: str):
-  success, _ = send_sms_fast2sms(to, message)
+def send_sms(to: str, message: str) -> bool:
+  """Wrapper to maintain existing interface"""
+  success, _ = send_sms_twilio(to, message)
   return success
 
 @router.post("/send")
+@router.post("/sms/send")  # Support both paths
 def send_alert(req: SMSRequest):
   msg = ""
   
@@ -108,12 +127,10 @@ def send_alert(req: SMSRequest):
       f"-KisanCore AI")
 
   if not msg:
-    return {"status": "error", 
-      "message": "Unknown message type"}
+    return {"status": "error", "message": "Unknown message type"}
     
   success = send_sms(req.to_phone, msg)
-  return {"status": "sent" if success 
-    else "failed"}
+  return {"status": "sent" if success else "failed"}
 
 @router.post("/daily-summary")
 def daily_summary(phone: str, 
@@ -136,7 +153,6 @@ async def handle_incoming_sms(From: str = Form(...), Body: str = Form(...)):
     # Import iot dynamically to avoid circular imports
     import app.api.routes.iot as iot
     import time
-    from fastapi.responses import Response
     
     text = Body.strip().upper()
     response_msg = ""
@@ -172,7 +188,7 @@ async def handle_incoming_sms(From: str = Form(...), Body: str = Form(...)):
     else:
         response_msg = "Command not recognized. Valid commands: PUMP ON [mins], PUMP OFF, AUTO, STATUS."
 
-    # Return TwiML XML response manually to avoid Twilio dependency
+    # Return TwiML XML response for Twilio
     xml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Message>{response_msg}</Message>
@@ -182,7 +198,7 @@ async def handle_incoming_sms(From: str = Form(...), Body: str = Form(...)):
 
 @router.get("/test")
 def test_sms(phone: str):
-    success, detail = send_sms_fast2sms(phone, "KisanCore: This is a test message from your new Fast2SMS integration. It's working! 🌾")
+    success, detail = send_sms_twilio(phone, "KisanCore: This is a test message from your new Twilio SMS integration. It's working! 🌾")
     if success:
         return {"status": "success", "message": f"Test SMS sent to {phone}", "details": detail}
     else:

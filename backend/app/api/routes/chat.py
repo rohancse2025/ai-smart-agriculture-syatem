@@ -6,7 +6,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Any
+import asyncio
 from groq import Groq
+from app.core.settings import settings
 
 router = APIRouter()
 
@@ -43,37 +45,44 @@ EXPERTISE:
 
 @router.post("/", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
-    api_key = os.environ.get("GROQ_API_KEY", "")
+    api_key = settings.groq_api_key
     if not api_key:
-        raise HTTPException(status_code=500, detail="GROQ_API_KEY environment variable is not set")
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not set in settings")
 
-    try:
-        client = Groq(api_key=api_key)
+    for attempt in range(2):
+        try:
+            client = Groq(api_key=api_key)
 
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-        for msg in request.history:
-            if isinstance(msg, dict) and "role" in msg and "content" in msg:
-                messages.append({"role": msg["role"], "content": msg["content"]})
-        messages.append({"role": "user", "content": request.message})
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+            for msg in request.history:
+                if isinstance(msg, dict) and "role" in msg and "content" in msg:
+                    messages.append({"role": msg["role"], "content": msg["content"]})
+            messages.append({"role": "user", "content": request.message})
 
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=messages,
-            max_tokens=300,
-        )
-        return ChatResponse(reply=response.choices[0].message.content)
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=messages,
+                max_tokens=300,
+            )
+            return ChatResponse(reply=response.choices[0].message.content)
 
-    except Exception as e:
-        error_str = str(e)
-        if "rate_limit_exceeded" in error_str.lower() or "429" in error_str:
-            raise HTTPException(status_code=429, detail="AI Rate Limit Reached. Please try again in a few minutes.")
-        raise HTTPException(status_code=500, detail=error_str)
+        except Exception as e:
+            error_str = str(e)
+            is_rate_limit = "rate_limit_exceeded" in error_str.lower() or "429" in error_str
+            
+            if is_rate_limit and attempt == 0:
+                await asyncio.sleep(2)
+                continue
+                
+            if is_rate_limit:
+                raise HTTPException(status_code=429, detail="AI Rate Limit Reached. Please try again in a few minutes.")
+            raise HTTPException(status_code=500, detail=error_str)
 
 @router.post("/stream")
 async def chat_stream_endpoint(request: ChatRequest):
-    api_key = os.environ.get("GROQ_API_KEY", "")
+    api_key = settings.groq_api_key
     if not api_key:
-        raise HTTPException(status_code=500, detail="GROQ_API_KEY environment variable is not set")
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not set in settings")
 
     try:
         client = Groq(api_key=api_key)

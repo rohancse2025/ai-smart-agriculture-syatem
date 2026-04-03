@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
+import SpeakButton from '../../components/SpeakButton';
 
 interface MarketPrice {
   market: string;
@@ -25,7 +27,8 @@ const STATES = [
 
 const POPULAR_CHIPS = ["Tomato", "Potato", "Onion", "Rice", "Wheat", "Cotton"];
 
-export default function MarketPage() {
+export default function MarketPage({ lang }: { lang: string }) {
+  const { t } = useTranslation(lang);
   const [commodity, setCommodity] = useState("Tomato");
   const [state, setState] = useState("Karnataka");
   const [prices, setPrices] = useState<MarketPrice[]>([]);
@@ -84,7 +87,7 @@ export default function MarketPage() {
     <div className="pb-[60px] font-sans">
       
       <section className={`bg-gradient-to-br from-green-800 to-green-600 rounded-2xl p-8 md:p-10 text-white mb-8 shadow-lg shadow-green-700/20 ${isMobile ? 'text-center' : 'text-left'}`}>
-        <h1 className={`m-0 mb-2.5 ${isMobile ? 'text-2xl' : 'text-3xl'} font-extrabold tracking-tight`}>📊 Market Price Checker</h1>
+        <h1 className={`m-0 mb-2.5 ${isMobile ? 'text-2xl' : 'text-3xl'} font-extrabold tracking-tight`}>📊 {t('market_title')}</h1>
         <p className={`m-0 mb-4 ${isMobile ? 'text-base' : 'text-lg'} opacity-90`}>
           Live mandi prices from Government of India
         </p>
@@ -97,7 +100,7 @@ export default function MarketPage() {
       <section className="bg-white rounded-2xl p-8 mb-10 shadow-sm border border-gray-200">
         <div className="flex gap-5 flex-wrap items-end">
           <div className="flex-1 min-w-[200px]">
-            <label className="block mb-2 font-bold text-gray-500 text-sm">Commodity</label>
+            <label className="block mb-2 font-bold text-gray-500 text-sm">{t('market_select_commodity')}</label>
             <select 
               value={commodity} 
               onChange={(e) => setCommodity(e.target.value)}
@@ -107,7 +110,7 @@ export default function MarketPage() {
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="block mb-2 font-bold text-gray-500 text-sm">State</label>
+            <label className="block mb-2 font-bold text-gray-500 text-sm">{t('market_select_state')}</label>
             <select 
               value={state} 
               onChange={(e) => setState(e.target.value)}
@@ -208,11 +211,15 @@ export default function MarketPage() {
                     <td className="py-4 px-5 text-[15px] text-gray-700">{p.variety}</td>
                     <td className="py-4 px-5 text-[15px] text-gray-700 font-medium">₹{p.min_price}</td>
                     <td className="py-4 px-5 text-[15px] text-gray-700 font-medium">₹{p.max_price}</td>
-                    <td className="py-4 px-5 text-[15px] font-black text-green-600">
+                    <td className="py-4 px-5 text-[15px] font-black text-green-600 flex items-center gap-2">
                       <span className={`mr-2 ${getTrendIcon(p.modal_price).color}`}>
                         {getTrendIcon(p.modal_price).icon}
                       </span>
                       ₹{p.modal_price}
+                      <SpeakButton 
+                        text={`${p.commodity} price at ${p.market} market is ${p.modal_price} rupees per quintal.`} 
+                        lang={lang.toUpperCase()} 
+                      />
                     </td>
                     <td className="py-4 px-5 text-[15px] text-gray-500">{p.date}</td>
                   </tr>

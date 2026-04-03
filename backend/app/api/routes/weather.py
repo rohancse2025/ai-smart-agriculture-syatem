@@ -41,7 +41,7 @@ def get_farming_tip(temp: float, humidity: int, condition: str) -> str:
 
 @router.get("", response_model=WeatherResponse)
 @router.get("/", response_model=WeatherResponse)
-async def get_weather(lat: float = Query(...), lon: float = Query(...)):
+async def get_weather(lat: float = Query(30.9010), lon: float = Query(75.8573)):
     api_key = os.environ.get("OPENWEATHER_API_KEY", "").strip()
 
     if not api_key:

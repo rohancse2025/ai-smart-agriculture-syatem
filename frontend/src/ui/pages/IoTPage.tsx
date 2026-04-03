@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 import { useSensor } from '../../context/SensorContext';
+import SpeakButton from '../../components/SpeakButton';
 
 // --- HELPER: COUNT UP ANIMATION ---
 const CountUp = ({ end, duration = 1500, decimals = 0 }: { end: number, duration?: number, decimals?: number }) => {
@@ -74,8 +76,9 @@ const DotIndicators = ({ value, min, max, activeColor }: { value: number | null,
   );
 };
 
-export default function IoTPage() {
+export default function IoTPage({ lang }: { lang: string }) {
   const navigate = useNavigate();
+  const { t } = useTranslation(lang);
   const { temperature, humidity, soil_moisture, timestamp, isOnline, lastUpdateDate, clearSensorData, refreshSensorData } = useSensor();
   
   // Create a compatible sensorData object for the existing code
@@ -132,25 +135,25 @@ export default function IoTPage() {
 
   // --- BADGE HELPERS ---
   const getTempBadge = (temp: number | null) => {
-    if (temp === null || temp === -999) return <span className="bg-red-50 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full border border-red-100">Disconnected</span>;
-    if (temp < 15) return <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-100">Too Cold</span>;
-    if (temp > 35) return <span className="bg-red-50 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full border border-red-100">Too Hot</span>;
-    return <span className="bg-green-50 text-green-600 text-xs font-bold px-2.5 py-1 rounded-full border border-green-100">Optimal</span>;
+    if (temp === null || temp === -999) return <span className="bg-red-50 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full border border-red-100">{t('iot_badge_disconnected')}</span>;
+    if (temp < 15) return <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-100">{t('iot_badge_cold')}</span>;
+    if (temp > 35) return <span className="bg-red-50 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full border border-red-100">{t('iot_badge_hot')}</span>;
+    return <span className="bg-green-50 text-green-600 text-xs font-bold px-2.5 py-1 rounded-full border border-green-100">{t('iot_badge_optimal')}</span>;
   };
 
   const getHumidityBadge = (hum: number | null) => {
-    if (hum === null || hum === -999) return <span className="bg-red-50 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full border border-red-100">Disconnected</span>;
-    if (hum < 30) return <span className="bg-orange-50 text-orange-600 text-xs font-bold px-2.5 py-1 rounded-full border border-orange-100">Too Dry</span>;
-    if (hum > 70) return <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-100">Too Humid</span>;
-    return <span className="bg-green-50 text-green-600 text-xs font-bold px-2.5 py-1 rounded-full border border-green-100">Optimal</span>;
+    if (hum === null || hum === -999) return <span className="bg-red-50 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full border border-red-100">{t('iot_badge_disconnected')}</span>;
+    if (hum < 30) return <span className="bg-orange-50 text-orange-600 text-xs font-bold px-2.5 py-1 rounded-full border border-orange-100">{t('iot_badge_dry')}</span>;
+    if (hum > 70) return <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-100">{t('iot_badge_humid')}</span>;
+    return <span className="bg-green-50 text-green-600 text-xs font-bold px-2.5 py-1 rounded-full border border-green-100">{t('iot_badge_optimal')}</span>;
   };
 
   const getMoistureBadge = (moist: number | null) => {
     if (moist === null) return null;
-    if (moist === -999) return <span className="bg-red-50 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full border border-red-100">Disconnected</span>;
-    if (moist < 30) return <span className="bg-orange-50 text-orange-600 text-xs font-bold px-2.5 py-1 rounded-full border border-orange-100">Too Dry</span>;
-    if (moist > 60) return <span className="bg-teal-50 text-teal-600 text-xs font-bold px-2.5 py-1 rounded-full border border-teal-100">Waterlogged</span>;
-    return <span className="bg-green-50 text-green-600 text-xs font-bold px-2.5 py-1 rounded-full border border-green-100">Optimal</span>;
+    if (moist === -999) return <span className="bg-red-50 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full border border-red-100">{t('iot_badge_disconnected')}</span>;
+    if (moist < 30) return <span className="bg-orange-50 text-orange-600 text-xs font-bold px-2.5 py-1 rounded-full border border-orange-100">{t('iot_badge_dry')}</span>;
+    if (moist > 60) return <span className="bg-teal-50 text-teal-600 text-xs font-bold px-2.5 py-1 rounded-full border border-teal-100">{t('iot_badge_waterlogged')}</span>;
+    return <span className="bg-green-50 text-green-600 text-xs font-bold px-2.5 py-1 rounded-full border border-green-100">{t('iot_badge_optimal')}</span>;
   };
 
   const renderIrrigationCard = () => {
@@ -164,9 +167,9 @@ export default function IoTPage() {
           <div className="flex items-center gap-4">
             <span className="text-4xl">📡</span>
             <div>
-              <h2 className="text-2xl font-black mb-1 m-0 text-gray-700">ESP32 OFFLINE</h2>
+              <h2 className="text-2xl font-black mb-1 m-0 text-gray-700">{t('iot_esp_offline_title')}</h2>
               <p className="m-0 text-sm font-bold uppercase tracking-widest opacity-60">
-                {isStale ? `Last data received ${minsAgo} min ago — reconnect ESP32 for live irrigation status` : "Waiting for ESP32 to connect..."}
+                {isStale ? `${t('iot_status_stale')} — ${minsAgo} min ago` : t('iot_esp_offline_desc')}
               </p>
             </div>
           </div>
@@ -181,8 +184,8 @@ export default function IoTPage() {
           <div className="flex items-center gap-4">
             <span className="text-4xl">⚠️</span>
             <div>
-              <h2 className="text-2xl font-black mb-1 m-0">SOIL SENSOR DISCONNECTED</h2>
-              <p className="m-0 text-sm opacity-70 font-bold uppercase tracking-widest">Re-connect the sensor wire to GPIO 34</p>
+              <h2 className="text-2xl font-black mb-1 m-0">{t('iot_soil_disconnected_title')}</h2>
+              <p className="m-0 text-sm opacity-70 font-bold uppercase tracking-widest">{t('iot_soil_disconnected_desc')}</p>
             </div>
           </div>
         </div>
@@ -198,17 +201,17 @@ export default function IoTPage() {
     if (moist < 30) {
       bg = "bg-red-50 border-red-200 text-red-900";
       status = "ON";
-      message = `Attention required: the current moisture level is critically low at ${moist}%. The soil is excessively dry, increasing plant stress. I strongly recommend initiating an irrigation cycle now to restore optimal water levels before the temperature peaks.`;
+      message = t('iot_msg_low', { moist });
       icon = "⚠️";
     } else if (moist <= 60) {
       bg = "bg-orange-50 border-orange-200 text-orange-900";
       status = "MODERATE";
-      message = `System condition normal: soil moisture is holding at an acceptable ${moist}%. A moderate, scheduled irrigation cycle is recommended to maintain optimal root nutrient absorption and prevent the topsoil from drying out.`;
+      message = t('iot_msg_moderate', { moist });
       icon = "💧";
     } else {
       bg = "bg-green-50 border-green-200 text-green-900";
       status = "OFF";
-      message = `Status check complete: soil moisture is currently high at ${moist}%. The soil is fully saturated. No further irrigation is necessary at this time, as adding more water may risk waterlogging the root system.`;
+      message = t('iot_msg_optimal', { moist });
       icon = "✅";
     }
 
@@ -218,7 +221,7 @@ export default function IoTPage() {
           <div className="flex items-center gap-4">
             <span className="text-4xl">{icon}</span>
             <div>
-              <h2 className="text-2xl font-black mb-1 m-0">STATUS: {status}</h2>
+              <h2 className="text-2xl font-black mb-1 m-0">{t('home_irrigation').toUpperCase()}: {status}</h2>
               <p className="m-0 text-sm opacity-70 font-bold uppercase tracking-widest text-[#16a34a] flex items-center gap-1.5"><span className="text-base">🤖</span> Local AI Analysis Engine</p>
             </div>
           </div>
@@ -227,7 +230,7 @@ export default function IoTPage() {
             onClick={() => navigate('/chat', { state: { prefill: `Soil moisture is ${moist}%. Should I change my irrigation schedule?` } })}
             className="bg-white/50 backdrop-blur-sm border-2 border-current px-5 py-2.5 rounded-xl text-sm font-black transition-all hover:bg-white hover:shadow-md ripple"
           >
-            🤖 Ask Global AI →
+            🤖 {t('crops_ask_expert')} →
           </button>
         </div>
 
@@ -259,21 +262,21 @@ export default function IoTPage() {
       <section className="bg-[#15803d] rounded-2xl p-8 md:p-10 text-white mb-8 shadow-xl relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl md:text-4xl font-extrabold m-0">📡 IoT Dashboard</h1>
+            <h1 className="text-3xl md:text-4xl font-extrabold m-0">📡 {t('iot_title')}</h1>
             {isOnline ? (
               <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm">
                 <div className="w-2.5 h-2.5 bg-green-400 rounded-full pulse-dot" />
-                <span>LIVE</span>
+                <span>{t('common_online')}</span>
               </div>
             ) : isStale ? (
               <div className="flex items-center gap-2 bg-orange-500/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm text-orange-200">
                 <div className="w-2.5 h-2.5 bg-orange-400 rounded-full" />
-                <span>STALE</span>
+                <span>{t('iot_status_stale').toUpperCase()}</span>
               </div>
             ) : (
               <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm">
                 <div className="w-2.5 h-2.5 bg-gray-400 rounded-full" />
-                <span>WAITING</span>
+                <span>{t('iot_status_waiting').toUpperCase()}</span>
               </div>
             )}
           </div>
@@ -285,7 +288,7 @@ export default function IoTPage() {
                 className={`bg-white/20 hover:bg-white/30 text-white text-xs px-4 py-2 rounded-xl font-bold transition-all shadow-sm active:scale-95 flex items-center gap-2 ${isRefreshing ? 'opacity-70 cursor-wait' : ''}`}
                 disabled={isRefreshing}
               >
-                <span className={`text-[10px] ${isRefreshing ? 'animate-spin' : ''}`}>⟳</span> Refresh
+                <span className={`text-[10px] ${isRefreshing ? 'animate-spin' : ''}`}>⟳</span> {t('common_retry')}
               </button>
               
               {isStale && (
@@ -293,7 +296,7 @@ export default function IoTPage() {
                   onClick={clearSensorData}
                   className="bg-white/20 hover:bg-white/30 text-white text-xs px-4 py-2 rounded-xl font-bold transition-all shadow-sm active:scale-95"
                 >
-                  Clear Last Data
+                  {t('common_cancel')}
                 </button>
               )}
             </div>
@@ -305,7 +308,7 @@ export default function IoTPage() {
 
       {/* SENSOR CARDS */}
       <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-        <span className="text-green-600">📊</span> Live Sensor Readings
+        <span className="text-green-600">📊</span> {t('home_sensor_data')}
       </h2>
       {isLoading && !sensorData ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -327,7 +330,7 @@ export default function IoTPage() {
             <h3 className="m-0 text-4xl font-black text-gray-900">
               {sensorData?.temperature !== undefined && sensorData?.temperature !== null ? <CountUp end={sensorData.temperature} decimals={1} /> : "--"}°C
             </h3>
-            <p className="text-gray-500 font-bold text-sm mb-4 uppercase tracking-wider">Soil Temp</p>
+            <p className="text-gray-500 font-bold text-sm mb-4 uppercase tracking-wider">{t('iot_temp')}</p>
             
             <DotIndicators value={sensorData?.temperature || null} min={0} max={50} activeColor="bg-red-500" />
             
@@ -345,7 +348,7 @@ export default function IoTPage() {
             <h3 className="m-0 text-4xl font-black text-gray-900">
               {sensorData?.humidity !== undefined && sensorData?.humidity !== null ? <CountUp end={sensorData.humidity} /> : "--"}%
             </h3>
-            <p className="text-gray-500 font-bold text-sm mb-4 uppercase tracking-wider">Air Humidity</p>
+            <p className="text-gray-500 font-bold text-sm mb-4 uppercase tracking-wider">{t('iot_hum')}</p>
             
             <DotIndicators value={sensorData?.humidity || null} min={0} max={100} activeColor="bg-blue-500" />
             
@@ -360,10 +363,16 @@ export default function IoTPage() {
               </div>
               {getMoistureBadge(sensorData?.soil_moisture ?? null)}
             </div>
-            <h3 className="m-0 text-4xl font-black text-gray-900">
+            <h3 className="m-0 text-4xl font-black text-gray-900 flex items-center gap-3">
               {sensorData?.soil_moisture !== undefined && sensorData?.soil_moisture !== null && sensorData.soil_moisture !== -999 ? <CountUp end={sensorData.soil_moisture} /> : "--"}%
+              {sensorData?.soil_moisture !== undefined && sensorData?.soil_moisture !== null && sensorData.soil_moisture !== -999 && (
+                <SpeakButton 
+                  text={`Your soil moisture is ${sensorData.soil_moisture} percent. ${sensorData.soil_moisture < 30 ? 'It is too dry. Please water your crops.' : sensorData.soil_moisture > 60 ? 'It is waterlogged. Please check drainage.' : 'Conditions are optimal.'}`} 
+                  lang={lang.toUpperCase()} 
+                />
+              )}
             </h3>
-            <p className="text-gray-500 font-bold text-sm mb-4 uppercase tracking-wider">Soil Moisture</p>
+            <p className="text-gray-500 font-bold text-sm mb-4 uppercase tracking-wider">{t('iot_moisture')}</p>
             
             <DotIndicators value={sensorData?.soil_moisture === -999 ? null : (sensorData?.soil_moisture ?? null)} min={0} max={100} activeColor="bg-green-500" />
             
@@ -378,23 +387,23 @@ export default function IoTPage() {
 
       <div className="text-sm text-gray-400 mb-10 flex items-center justify-center gap-2 bg-gray-50 py-2 rounded-full border border-gray-100 max-w-fit mx-auto px-6">
         <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-        Last updated: <strong className="text-gray-600 ml-1">{isStale ? `${lastUpdateStr} (${minsAgo} minutes ago)` : lastUpdateStr}</strong>
+        {t('iot_last_update')}: <strong className="text-gray-600 ml-1">{isStale ? `${lastUpdateStr} (${minsAgo} minutes ago)` : lastUpdateStr}</strong>
       </div>
 
       {/* IRRIGATION STATUS */}
       <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-        <span>🚿</span> Irrigation Status
+        <span>🚿</span> {t('home_irrigation')}
       </h2>
       {renderIrrigationCard()}
 
       {/* MANUAL PUMP CONTROLS */}
       <div className="mt-8 bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
-        <h3 className="font-bold mb-4 flex items-center gap-2">🕹️ Manual Pump Controls</h3>
+        <h3 className="font-bold mb-4 flex items-center gap-2">🕹️ {t('iot_manual_controls')}</h3>
         <p className="text-sm text-gray-500 mb-6">Remotely override autonomous AI decisions. Safety sensors will automatically turn off the pump if moisture reaches 60%.</p>
         
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-200">
-            <span className="text-sm font-bold text-gray-600 px-2">Timer:</span>
+            <span className="text-sm font-bold text-gray-600 px-2">{t('iot_timer')}:</span>
             <input 
               type="number" 
               value={overrideDuration} 
@@ -402,7 +411,7 @@ export default function IoTPage() {
               className="w-20 px-3 py-1.5 rounded-lg border border-gray-300 text-center font-bold"
               min="1" max="180"
             />
-            <span className="text-sm font-bold text-gray-600 px-2">mins</span>
+            <span className="text-sm font-bold text-gray-600 px-2">{t('iot_minutes')}</span>
           </div>
 
           <button 
@@ -410,7 +419,7 @@ export default function IoTPage() {
             disabled={isSendingOverride}
             className="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50"
           >
-            Force Pump ON
+            {t('iot_pump_on')}
           </button>
           
           <button 
@@ -418,7 +427,7 @@ export default function IoTPage() {
             disabled={isSendingOverride}
             className="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50"
           >
-            Force Pump OFF
+            {t('iot_pump_off')}
           </button>
           
           <button 
@@ -426,27 +435,27 @@ export default function IoTPage() {
             disabled={isSendingOverride}
             className="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50"
           >
-            Clear (Auto Mode)
+            {t('iot_auto_mode')}
           </button>
         </div>
       </div>
 
       {/* SENSOR HEALTH */}
       <h2 className="text-xl font-bold mb-6 mt-12 flex items-center gap-2">
-        <span>🔧</span> Sensor Health
+        <span>🔧</span> {t('iot_sensor_health')}
       </h2>
       <div className="flex flex-wrap gap-4">
         <div className={`flex items-center gap-2 px-5 py-2.5 rounded-full border-2 font-bold transition-all transition-700 shadow-sm
           ${isOnline && isTempOnline ? 'bg-green-50 border-green-200 text-green-700' : isStale ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-          <span>🌡️</span> Temp Sensor: {isOnline && isTempOnline ? 'Online' : isStale ? `Last seen ${minsAgo}m ago` : 'Waiting...'}
+          <span>🌡️</span> {t('iot_temp')}: {isOnline && isTempOnline ? t('common_online') : isStale ? `${t('iot_status_stale')} ${minsAgo}m ago` : t('iot_status_waiting')}
         </div>
         <div className={`flex items-center gap-2 px-5 py-2.5 rounded-full border-2 font-bold transition-all transition-700 shadow-sm
           ${isOnline && isHumOnline ? 'bg-green-50 border-green-200 text-green-700' : isStale ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-          <span>💧</span> Humidity Sensor: {isOnline && isHumOnline ? 'Online' : isStale ? `Last seen ${minsAgo}m ago` : 'Waiting...'}
+          <span>💧</span> {t('iot_hum')}: {isOnline && isHumOnline ? t('common_online') : isStale ? `${t('iot_status_stale')} ${minsAgo}m ago` : t('iot_status_waiting')}
         </div>
         <div className={`flex items-center gap-2 px-5 py-2.5 rounded-full border-2 font-bold transition-all transition-700 shadow-sm
           ${isOnline && isSoilOnline ? 'bg-green-50 border-green-200 text-green-700' : isOnline && sensorData?.soil_moisture === -999 ? 'bg-red-50 border-red-200 text-red-700' : isStale ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-          <span>🌱</span> Soil Sensor: {isOnline && isSoilOnline ? 'Online' : isOnline && sensorData?.soil_moisture === -999 ? '⚠️ Disconnected' : isStale ? `Last seen ${minsAgo}m ago` : 'Waiting...'}
+          <span>🌱</span> {t('iot_moisture')}: {isOnline && isSoilOnline ? t('common_online') : isOnline && sensorData?.soil_moisture === -999 ? `⚠️ ${t('iot_badge_disconnected')}` : isStale ? `${t('iot_status_stale')} ${minsAgo}m ago` : t('iot_status_waiting')}
         </div>
       </div>
 
