@@ -1,57 +1,77 @@
-const CACHE_NAME = 'kisancore-v1';
-const OFFLINE_URLS = [
+const CACHE_NAME = 'kisancore-v2';
+const APP_SHELL = [
   '/',
+  '/index.html',
   '/crops',
-  '/scan', 
+  '/scan',
   '/iot',
   '/market',
-  '/chat'
+  '/chat',
 ];
 
-const OFFLINE_DATA = {
-  cropRecommendation: {
-    'high_N_high_moisture': 'Rice',
-    'low_N_dry': 'Cotton', 
-    'medium_N_medium': 'Wheat',
-    'high_N_low_moisture': 'Maize',
-    'low_N_high_moisture': 'Jute',
-  },
-  soilTips: {
-    acidic: 'Add lime to increase pH to 6-7.5',
-    alkaline: 'Add sulfur to reduce pH',
-    low_nitrogen: 'Apply urea fertilizer 50kg/acre',
-    dry: 'Irrigate immediately - soil moisture critical',
-    wet: 'Stop irrigation and improve drainage'
-  },
-  irrigationRules: {
-    below30: 'Turn ON irrigation immediately',
-    between30_60: 'Moderate irrigation needed',
-    above60: 'No irrigation needed today'
-  },
-  diseaseTips: {
-    'Tomato Early Blight': 'Apply Mancozeb 2.5g/L',
-    'Potato Late Blight': 'Apply Cymoxanil 3g/L',
-    'Rice Blast': 'Apply Tricyclazole 0.6g/L',
-    'Wheat Rust': 'Apply Propiconazole 1ml/L'
-  }
-};
-
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => 
-      cache.addAll(OFFLINE_URLS))
+      cache.addAll(APP_SHELL).catch(e => 
+        console.log('Cache install error:', e))
+    )
   );
 });
 
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => 
+      Promise.all(keys
+        .filter(k => k !== CACHE_NAME)
+        .map(k => caches.delete(k))
+      )
+    )
+  );
+  self.clients.claim();
+});
+
 self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache =>
+            cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => 
+          caches.match(event.request)
+            .then(cached => cached || new Response(
+              JSON.stringify({error: "offline",
+                offline: true}),
+              {headers: {'Content-Type': 
+                'application/json'}}
+            ))
+        )
+    );
+    return;
+  }
+  
   event.respondWith(
-    fetch(event.request).catch(() =>
-      caches.match(event.request))
+    caches.match(event.request)
+      .then(cached => cached || 
+        fetch(event.request)
+          .then(response => {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache =>
+              cache.put(event.request, clone));
+            return response;
+          })
+      )
   );
 });
 
 self.addEventListener('message', event => {
-  if (event.data === 'GET_OFFLINE_DATA') {
-    event.source.postMessage(OFFLINE_DATA);
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
 });

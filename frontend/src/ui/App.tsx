@@ -6,10 +6,30 @@ import ScanPage from "./pages/ScanPage";
 import IoTPage from "./pages/IoTPage";
 import ChatPage from "./pages/ChatPage";
 import MarketPage from "./pages/MarketPage";
+import ProfilePage from "./pages/ProfilePage";
 
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   // DARK MODE STATE & LOGIC
   const [isDark, setIsDark] = useState(() => {
@@ -156,6 +176,16 @@ export default function App() {
               )}
             </div>
 
+            {/* INSTALL BUTTON (Desktop) */}
+            {deferredPrompt && (
+              <button 
+                onClick={handleInstallClick}
+                className="hidden md:flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-lg shadow-green-600/20 active:scale-95"
+              >
+                📲 Install App
+              </button>
+            )}
+
             {/* MOBILE MENU TOGGLE */}
             <button 
               onClick={() => setShowMobileMenu(!showMobileMenu)}
@@ -199,6 +229,16 @@ export default function App() {
                  ))}
                </div>
             </div>
+
+            {/* INSTALL BUTTON (Mobile) */}
+            {deferredPrompt && (
+              <button 
+                onClick={handleInstallClick}
+                className="mt-4 w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl text-lg font-black shadow-lg"
+              >
+                📲 Install App
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -216,6 +256,7 @@ export default function App() {
             <Route path="/iot" element={<IoTPage />} />
             <Route path="/market" element={<MarketPage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Routes>
         </div>
       </main>

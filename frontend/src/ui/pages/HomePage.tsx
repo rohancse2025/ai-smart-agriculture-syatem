@@ -77,6 +77,27 @@ export default function HomePage() {
   
   const { temperature, humidity, soil_moisture, isOnline } = useSensor();
   const sensorData = { temperature, humidity, soil_moisture };
+
+  const farmer = JSON.parse(
+    localStorage.getItem('kisancore_farmer') || 'null'
+  );
+  const isLoggedIn = !!farmer;
+
+  const [farmerStats, setFarmerStats] = useState({
+    activeCrops: JSON.parse(
+      localStorage.getItem('active_crops') || '[]'),
+    lastSoilPh: farmer?.soil_ph || 6.5,
+    lastNitrogen: farmer?.nitrogen || 50,
+    farmSize: farmer?.farm_size || 0,
+    totalScans: parseInt(
+      localStorage.getItem('total_scans') || '0'),
+    totalChats: parseInt(
+      localStorage.getItem('total_chats') || '0'),
+  });
+
+  const [activeCrops, setActiveCrops] = useState<any[]>(farmerStats.activeCrops);
+  const [showAddCrop, setShowAddCrop] = useState(false);
+  const [newCrop, setNewCrop] = useState({ name: 'Rice', plantedDate: new Date().toISOString().split('T')[0] });
   
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [recommendedCrop, setRecommendedCrop] = useState<string | null>(null);
@@ -84,6 +105,33 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isPageOnline, setIsPageOnline] = useState(navigator.onLine);
+  const [showSyncMessage, setShowSyncMessage] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsPageOnline(true);
+      setShowSyncMessage(true);
+      setTimeout(() => setShowSyncMessage(false), 3000);
+    };
+    const handleOffline = () => setIsPageOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  function getOfflineCropRec(temp: number, humidity: number, moisture: number) {
+    if (moisture < 30) return "Cotton";
+    if (temp > 30 && humidity > 70) return "Rice";
+    if (temp < 25 && moisture > 50) return "Wheat";
+    if (humidity > 60) return "Maize";
+    return "Soybean";
+  }
 
   // Only compute irrigation when ESP is actually live and soil_moisture is a real reading
   let irrigation: IrrigationSuggestion | null = null;
@@ -119,6 +167,32 @@ export default function HomePage() {
   const [soilAiVerdict, setSoilAiVerdict] = useState<string | null>(null);
   const [isSoilAiLoading, setIsSoilAiLoading] = useState(false);
 
+  // STEP 4: Pre-fill soil analysis inputs from farmer profile
+  useEffect(() => {
+    if (isLoggedIn && farmer) {
+      setSoilInputs({
+        ph: farmer.soil_ph?.toString() || "",
+        nitrogen: farmer.nitrogen?.toString() || "",
+        moisture: "45"
+      });
+    }
+  }, [isLoggedIn]);
+
+  const addCrop = () => {
+    const updatedCrops = [...activeCrops, { ...newCrop, id: Date.now() }];
+    setActiveCrops(updatedCrops);
+    localStorage.setItem('active_crops', JSON.stringify(updatedCrops));
+    setFarmerStats(prev => ({ ...prev, activeCrops: updatedCrops }));
+    setShowAddCrop(false);
+  };
+
+  const removeCrop = (id: number) => {
+    const updatedCrops = activeCrops.filter(c => c.id !== id);
+    setActiveCrops(updatedCrops);
+    localStorage.setItem('active_crops', JSON.stringify(updatedCrops));
+    setFarmerStats(prev => ({ ...prev, activeCrops: updatedCrops }));
+  };
+
   const analyzeSoil = async () => {
     const ph = parseFloat(soilInputs.ph);
     const n = parseFloat(soilInputs.nitrogen);
@@ -148,6 +222,30 @@ export default function HomePage() {
     score = Math.max(1, score);
     
     setSoilAnalysisResult({ tips, score, status: { ph: phStatus, n: nStatus, m: mStatus } });
+
+    // STEP 5: After soil analysis runs, save results to farmer profile
+    localStorage.setItem('last_soil_analysis', 
+      JSON.stringify({
+        ph: soilInputs.ph,
+        nitrogen: soilInputs.nitrogen,
+        moisture: soilInputs.moisture,
+        score: score,
+        date: new Date().toLocaleDateString()
+      })
+    );
+
+    if (isLoggedIn && farmer) {
+      fetch('http://127.0.0.1:8000/api/v1/auth/profile?phone=' + farmer.phone, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          soil_ph: parseFloat(soilInputs.ph),
+          nitrogen: parseFloat(soilInputs.nitrogen),
+          location: farmer.location,
+          farm_size: farmer.farm_size
+        })
+      }).catch(err => console.error("Profile Update Error:", err));
+    }
 
     // AI Fetch Logic
     setSoilAiVerdict(null);
@@ -182,17 +280,27 @@ export default function HomePage() {
       const fetchCrop = async () => {
         try {
           const cropRes = await fetch(`/api/v1/recommend-crop?temperature=${temperature}&humidity=${humidity}&ph=6.5&rainfall=100`);
+          if (!cropRes.ok) throw new Error('Offline or Error');
           const cropJson = await cropRes.json();
           setRecommendedCrop(cropJson.crop);
+          localStorage.setItem('last_crop', cropJson.crop);
         } catch (error) {
-          console.error("Error fetching crop recommendation:", error);
+          console.error("Error fetching crop recommendation, using offline rule:", error);
+          const offlineRec = getOfflineCropRec(temperature, humidity, soil_moisture || 45);
+          setRecommendedCrop(localStorage.getItem('last_crop') || offlineRec);
         } finally {
           setIsLoading(false);
         }
       };
       fetchCrop();
     } else if (temperature === null && !hasFetchedCrop) {
-      const timeout = setTimeout(() => setIsLoading(false), 5000);
+      const timeout = setTimeout(() => {
+        if (!hasFetchedCrop) {
+          const lastCrop = localStorage.getItem('last_crop');
+          if (lastCrop) setRecommendedCrop(lastCrop);
+          setIsLoading(false);
+        }
+      }, 5000);
       return () => clearTimeout(timeout);
     }
   }, [temperature, humidity, hasFetchedCrop]);
@@ -222,8 +330,11 @@ export default function HomePage() {
         const data: WeatherData = await res.json();
         setWeatherData(data);
         localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+        localStorage.setItem('last_weather', JSON.stringify(data));
       } catch (err) {
         console.error("Weather Fetch Error:", err);
+        const lastWeather = localStorage.getItem('last_weather');
+        if (lastWeather) setWeatherData(JSON.parse(lastWeather));
       } finally {
         setWeatherLoading(false);
       }
@@ -246,9 +357,58 @@ export default function HomePage() {
     return val > 60 ? "↑" : val < 30 ? "↓" : "→";
   };
 
+  const currentSensorData = isPageOnline ? sensorData : JSON.parse(
+    localStorage.getItem('last_sensor') || 
+    '{"temperature":28,"humidity":65,"soil_moisture":45}'
+  );
+
+  useEffect(() => {
+    if (isPageOnline && sensorData.temperature !== null) {
+      localStorage.setItem('last_sensor', JSON.stringify(sensorData));
+    }
+  }, [sensorData, isPageOnline]);
+
   return (
     <div className="font-sans">
       
+      {/* Offline Banner */}
+      {!isPageOnline && (
+        <div className="bg-amber-100 border-b border-amber-200 py-3 px-6 text-amber-800 text-center font-bold text-sm animate-fade-in flex items-center justify-center gap-2">
+          <span>📵</span> Offline — Showing last saved data. Soil analysis and irrigation work fully offline.
+        </div>
+      )}
+
+      {/* Back Online Message */}
+      {showSyncMessage && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] bg-green-600 text-white py-2 px-6 rounded-full font-bold shadow-2xl animate-fade-in flex items-center gap-2">
+          <span>🟢</span> Back online — Syncing latest data...
+        </div>
+      )}
+      
+      {/* STEP 1: Farmer Welcome Banner */}
+      {isLoggedIn && farmer && (
+        <div className="mb-6 -mx-4 md:-mx-0 bg-gradient-to-r from-green-600 to-teal-500 rounded-2xl p-6 shadow-lg flex items-center justify-between text-white animate-fade-in-down">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-3xl">
+              👨‍🌾
+            </div>
+            <div>
+              <h2 className="text-xl font-bold m-0 leading-tight">Welcome back, {farmer.name}!</h2>
+              <div className="flex gap-4 mt-1 opacity-90 text-sm font-medium">
+                <span>📍 {farmer.location}</span>
+                <span>🚜 Farm: {farmer.farm_size} acres</span>
+              </div>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate('/profile')}
+            className="bg-white/20 hover:bg-white/30 transition-all border border-white/40 py-2 px-5 rounded-xl text-sm font-bold backdrop-blur-sm"
+          >
+            Edit Profile
+          </button>
+        </div>
+      )}
+
       {/* 1. HERO SECTION */}
       <section className="relative min-h-[500px] -mx-8 md:-mx-12 mb-12 flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
@@ -360,6 +520,163 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* STEP 2: Farmer Dashboard section */}
+      {isLoggedIn && (
+        <section className="mb-12 animate-fade-in-up">
+          <div className="flex items-center gap-3 mb-6">
+            <h2 className="text-xl text-gray-900 dark:text-white font-black uppercase tracking-widest text-xs opacity-50 m-0">Farmer Dashboard</h2>
+            <span className="bg-green-100 text-green-700 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-green-200 tracking-widest">PERSONALIZED</span>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            {/* Card 1 - Active Crops */}
+            <div 
+              onClick={() => document.getElementById('crops-section')?.scrollIntoView({ behavior: 'smooth' })}
+              className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm hover-lift cursor-pointer"
+            >
+              <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-full flex items-center justify-center text-xl mb-4 text-green-600">
+                🌾
+              </div>
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Active Crops</p>
+              <h3 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
+                {farmerStats.activeCrops.length}
+              </h3>
+              <p className="text-[11px] font-bold text-gray-400 mt-1">Currently growing</p>
+            </div>
+
+            {/* Card 2 - Soil Health */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm hover-lift">
+              <div className="w-10 h-10 bg-[#78350f]/10 rounded-full flex items-center justify-center text-xl mb-4 text-[#78350f]">
+                🧪
+              </div>
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Soil Health</p>
+              <h3 className={`text-2xl font-black leading-tight ${farmerStats.lastSoilPh >= 6 && farmerStats.lastSoilPh <= 7.5 ? 'text-green-600' : 'text-orange-500'}`}>
+                pH {farmerStats.lastSoilPh}
+              </h3>
+              <p className={`text-[11px] font-bold mt-1 ${farmerStats.lastSoilPh >= 6 && farmerStats.lastSoilPh <= 7.5 ? 'text-green-600/70' : 'text-orange-500/70'}`}>
+                {farmerStats.lastSoilPh >= 6 && farmerStats.lastSoilPh <= 7.5 ? "Optimal" : "Needs attention"}
+              </p>
+            </div>
+
+            {/* Card 3 - Disease Scans */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm hover-lift">
+              <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center text-xl mb-4 text-orange-500">
+                🔍
+              </div>
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Disease Scans</p>
+              <h3 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
+                {farmerStats.totalScans}
+              </h3>
+              <p className="text-[11px] font-bold text-gray-400 mt-1">Total scans done</p>
+            </div>
+
+            {/* Card 4 - AI Chats */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm hover-lift">
+              <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center text-xl mb-4 text-purple-600">
+                💬
+              </div>
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">AI Chats</p>
+              <h3 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
+                {farmerStats.totalChats}
+              </h3>
+              <p className="text-[11px] font-bold text-gray-400 mt-1">This session</p>
+            </div>
+          </div>
+
+          {/* STEP 3: My Active Crops Management section */}
+          <div id="crops-section" className="bg-white dark:bg-slate-800 rounded-3xl p-8 border border-gray-100 dark:border-slate-700 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="m-0 text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+                🌾 My Active Crops
+              </h3>
+              <button 
+                onClick={() => setShowAddCrop(true)}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded-xl text-sm transition-all shadow-md active:scale-95"
+              >
+                + Add Crop
+              </button>
+            </div>
+
+            {showAddCrop && (
+              <div className="mb-8 p-6 bg-green-50 dark:bg-green-900/10 rounded-2xl border border-green-100 dark:border-green-800 animate-fade-in-up">
+                <h4 className="text-sm font-black text-green-700 dark:text-green-400 uppercase tracking-widest mb-4">Add New Crop</h4>
+                <div className="flex gap-4 flex-wrap">
+                  <div className="flex-1 min-w-[150px]">
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Crop Name</label>
+                    <select 
+                      value={newCrop.name}
+                      onChange={(e) => setNewCrop({...newCrop, name: e.target.value})}
+                      className="w-full p-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-green-500/20"
+                    >
+                      {['Rice', 'Wheat', 'Cotton', 'Sugarcane', 'Maize', 'Soybean', 'Potato', 'Onion', 'Tomato'].map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1 min-w-[150px]">
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Planted Date</label>
+                    <input 
+                      type="date"
+                      value={newCrop.plantedDate}
+                      onChange={(e) => setNewCrop({...newCrop, plantedDate: e.target.value})}
+                      className="w-full p-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-green-500/20"
+                    />
+                  </div>
+                  <div className="flex gap-2 items-end">
+                    <button 
+                      onClick={() => setShowAddCrop(false)}
+                      className="p-3 px-6 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={addCrop}
+                      className="p-3 px-8 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-600/20"
+                    >
+                      Save Crop
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeCrops.length === 0 ? (
+              <div className="py-12 text-center border-2 border-dashed border-gray-100 dark:border-slate-700 rounded-2xl">
+                <span className="text-4xl block mb-2">🚜</span>
+                <p className="text-gray-400 font-bold">No crops added yet. Start tracking your farm!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {activeCrops.map((crop) => {
+                  const plantedDate = new Date(crop.plantedDate);
+                  const harvestDate = new Date(plantedDate);
+                  harvestDate.setMonth(harvestDate.getMonth() + 4);
+                  
+                  return (
+                    <div key={crop.id} className="p-5 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-gray-100 dark:border-slate-800 flex justify-between items-start group">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xl">🌾</span>
+                          <h4 className="m-0 font-black text-gray-900 dark:text-white">{crop.name}</h4>
+                        </div>
+                        <p className="m-0 text-xs text-gray-500 font-medium">Planted: {plantedDate.toLocaleDateString()}</p>
+                        <p className="m-0 text-xs text-green-600 dark:text-green-500 font-bold mt-1">Expected harvest: {harvestDate.toLocaleDateString()}</p>
+                      </div>
+                      <button 
+                        onClick={() => removeCrop(crop.id)}
+                        className="text-gray-400 hover:text-red-500 transition-all p-1 opacity-0 group-hover:opacity-100"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* 3. LIVE FARM DATA */}
       <section className="mb-14">
         <div className="flex items-center gap-3 mb-6">
@@ -380,10 +697,10 @@ export default function HomePage() {
                 {isLoading ? <Skeleton className="h-9 w-24" /> : (
                   <>
                     <h3 className="m-0 mb-1 text-[36px] font-black tracking-tight text-gray-900 dark:text-white leading-none">
-                      {sensorData?.temperature || 0}°C
+                      {currentSensorData?.temperature || 0}°C
                     </h3>
-                    <span className={`text-xl font-bold ${getTrend(sensorData?.temperature || 25, 'temp') === '↑' ? 'text-red-500' : 'text-blue-500'}`}>
-                      {getTrend(sensorData?.temperature || 25, 'temp')}
+                    <span className={`text-xl font-bold ${getTrend(currentSensorData?.temperature || 25, 'temp') === '↑' ? 'text-red-500' : 'text-blue-500'}`}>
+                      {getTrend(currentSensorData?.temperature || 25, 'temp')}
                     </span>
                   </>
                 )}
@@ -400,9 +717,9 @@ export default function HomePage() {
                 {isLoading ? <Skeleton className="h-9 w-24" /> : (
                   <>
                     <h3 className="m-0 mb-1 text-[36px] font-black tracking-tight text-gray-900 dark:text-white leading-none">
-                      {sensorData?.humidity || 0}%
+                      {currentSensorData?.humidity || 0}%
                     </h3>
-                    <span className="text-xl font-bold text-blue-500">{getTrend(sensorData?.humidity || 50, 'hum')}</span>
+                    <span className="text-xl font-bold text-blue-500">{getTrend(currentSensorData?.humidity || 50, 'hum')}</span>
                   </>
                 )}
               </div>
@@ -418,9 +735,9 @@ export default function HomePage() {
                 {isLoading ? <Skeleton className="h-9 w-24" /> : (
                   <>
                     <h3 className="m-0 mb-1 text-[36px] font-black tracking-tight text-gray-900 dark:text-white leading-none">
-                      {sensorData?.soil_moisture || 0}%
+                      {currentSensorData?.soil_moisture || 0}%
                     </h3>
-                    <span className="text-xl font-bold text-green-500">{getTrend(sensorData?.soil_moisture || 50, 'moist')}</span>
+                    <span className="text-xl font-bold text-green-500">{getTrend(currentSensorData?.soil_moisture || 50, 'moist')}</span>
                   </>
                 )}
               </div>
@@ -435,17 +752,17 @@ export default function HomePage() {
               <div className="min-h-[44px]">
                 {isLoading ? <Skeleton className="h-9 w-24" /> : (
                   <h3 className={`m-0 mb-1 text-[36px] font-black tracking-tight leading-none ${
-                    !isOnline ? 'text-gray-400' :
+                    !isPageOnline ? 'text-gray-400' :
                     irrigation?.status === "ON" ? "text-red-500" :
                     irrigation?.status === "MODERATE" ? "text-orange-500" :
                     "text-green-600"
                   }`}>
-                    {!isOnline ? "---" : (irrigation?.status || "---")}
+                    {!isPageOnline ? "---" : (irrigation?.status || "---")}
                   </h3>
                 )}
               </div>
               <p className="m-0 text-[14px] text-gray-400 font-bold uppercase tracking-wider pl-0.5 mt-1">
-                {!isOnline ? "Irrigation (Offline)" : "Irrigation"}
+                {!isPageOnline ? "Irrigation (Offline)" : "Irrigation"}
               </p>
             </div>
           </div>

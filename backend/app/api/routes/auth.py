@@ -22,10 +22,18 @@ class LoginRequest(BaseModel):
   password: str
 
 class UpdateProfileRequest(BaseModel):
-  soil_ph: float = 6.5
-  nitrogen: float = 50.0
+  name: str = ""
   location: str = ""
   farm_size: float = 0.0
+  farm_size_unit: str = "acres"
+  soil_type: str = ""
+  primary_crop: str = ""
+  irrigation_type: str = ""
+  soil_ph: float = 6.5
+  nitrogen: float = 50.0
+  potassium: float = 40.0
+  sms_alerts_enabled: str = "false"
+  sms_phone: str = ""
 
 def create_token(phone: str):
   expire = datetime.datetime.utcnow() + datetime.timedelta(days=30)
@@ -82,12 +90,23 @@ def update_profile(phone: str, req: UpdateProfileRequest, db: Session = Depends(
   farmer = db.query(Farmer).filter(Farmer.phone == phone).first()
   if not farmer:
     raise HTTPException(404)
-  farmer.soil_ph = req.soil_ph
-  farmer.nitrogen = req.nitrogen
+  
+  if req.name: farmer.name = req.name
   farmer.location = req.location
   farmer.farm_size = req.farm_size
+  farmer.farm_size_unit = req.farm_size_unit
+  farmer.soil_type = req.soil_type
+  farmer.primary_crop = req.primary_crop
+  farmer.irrigation_type = req.irrigation_type
+  farmer.soil_ph = req.soil_ph
+  farmer.nitrogen = req.nitrogen
+  farmer.potassium = req.potassium
+  farmer.sms_alerts_enabled = req.sms_alerts_enabled
+  farmer.sms_phone = req.sms_phone
+  
   db.commit()
-  return {"status": "updated"}
+  db.refresh(farmer)
+  return {"status": "updated", "farmer": farmer}
 
 @router.post("/history")
 def save_history(farmer_id: int, type: str, data: str, db: Session = Depends(get_db)):
@@ -102,3 +121,57 @@ def get_history(farmer_id: int, db: Session = Depends(get_db)):
     FarmerHistory.farmer_id == farmer_id
   ).order_by(FarmerHistory.created_at.desc()
   ).limit(20).all()
+
+@router.get("/farmer/{farmer_id}/crops")
+def get_farmer_crops(farmer_id: int, 
+  db: Session = Depends(get_db)):
+  from app.database import CropRecord
+  return db.query(CropRecord).filter(
+    CropRecord.farmer_id == farmer_id,
+    CropRecord.status == "growing"
+  ).all()
+
+@router.post("/farmer/{farmer_id}/crops")
+def add_crop(farmer_id: int, crop_name: str,
+  planted_date: str, field_size: float = 0.0,
+  db: Session = Depends(get_db)):
+  from app.database import CropRecord
+  import datetime
+  planted = datetime.datetime.strptime(
+    planted_date, "%Y-%m-%d")
+  harvest = planted + datetime.timedelta(days=120)
+  crop = CropRecord(
+    farmer_id=farmer_id,
+    crop_name=crop_name,
+    planted_date=planted_date,
+    expected_harvest=harvest.strftime("%Y-%m-%d"),
+    field_size=field_size,
+    status="growing"
+  )
+  db.add(crop)
+  db.commit()
+  return {"status": "added", "crop": crop_name}
+
+@router.delete("/farmer/crops/{crop_id}")
+def remove_crop(crop_id: int, 
+  db: Session = Depends(get_db)):
+  from app.database import CropRecord
+  crop = db.query(CropRecord).filter(
+    CropRecord.id == crop_id).first()
+  if crop:
+    crop.status = "harvested"
+    db.commit()
+  return {"status": "removed"}
+
+@router.put("/farmer/{farmer_id}/stats")
+def update_stats(farmer_id: int,
+  scan_done: bool = False,
+  chat_done: bool = False,
+  db: Session = Depends(get_db)):
+  farmer = db.query(Farmer).filter(
+    Farmer.id == farmer_id).first()
+  if farmer:
+    if scan_done: farmer.total_scans += 1
+    if chat_done: farmer.total_chats += 1
+    db.commit()
+  return {"status": "updated"}
