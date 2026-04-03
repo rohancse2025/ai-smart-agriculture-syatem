@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 
-export default function ProfilePage({ lang }: { lang: string }) {
+export default function ProfilePage({ lang, onLogout }: { lang: string, onLogout?: () => void }) {
   const { t } = useTranslation(lang);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -34,7 +34,10 @@ export default function ProfilePage({ lang }: { lang: string }) {
 
     const fetchProfile = async () => {
       try {
-        const res = await fetch(`/api/v1/auth/profile?phone=${encodeURIComponent(farmer.phone)}`);
+        const token = localStorage.getItem('kisancore_token');
+        const res = await fetch('/api/v1/auth/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         if (res.ok) {
           const data = await res.json();
           setFormData({
@@ -56,9 +59,13 @@ export default function ProfilePage({ lang }: { lang: string }) {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('kisancore_farmer');
-    navigate('/');
-    window.location.reload();
+    if (onLogout) {
+      onLogout();
+    } else {
+      localStorage.removeItem('kisancore_farmer');
+      navigate('/');
+      window.location.reload();
+    }
   };
 
   const handleDelete = async () => {
@@ -68,13 +75,20 @@ export default function ProfilePage({ lang }: { lang: string }) {
 
     setSaving(true);
     try {
-      const res = await fetch(`/api/v1/auth/profile?phone=${encodeURIComponent(formData.phone)}`, {
-        method: 'DELETE'
+      const token = localStorage.getItem('kisancore_token');
+      const res = await fetch('/api/v1/auth/profile', {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        localStorage.removeItem('kisancore_farmer');
-        navigate('/');
-        window.location.reload();
+        if (onLogout) {
+          onLogout();
+        } else {
+          localStorage.removeItem('kisancore_farmer');
+          localStorage.removeItem('kisancore_token');
+          navigate('/');
+          window.location.reload();
+        }
       } else {
         const result = await res.json();
         alert(result.detail || "Failed to delete account");
@@ -108,9 +122,13 @@ export default function ProfilePage({ lang }: { lang: string }) {
     };
 
     try {
-      const res = await fetch(`/api/v1/auth/profile?phone=${encodeURIComponent(formData.phone)}`, {
+      const token = localStorage.getItem('kisancore_token');
+      const res = await fetch('/api/v1/auth/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(updateData)
       });
 

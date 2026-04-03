@@ -65,6 +65,11 @@ const CropSearchInput: React.FC<CropSearchInputProps> = ({
   return (
     <div className="relative w-full" ref={containerRef}>
       <div className="relative">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
         <input
           type="text"
           value={value}
@@ -75,7 +80,7 @@ const CropSearchInput: React.FC<CropSearchInputProps> = ({
           onKeyDown={handleKeyDown}
           onFocus={() => value.length >= 2 && setShowDropdown(true)}
           placeholder={placeholder}
-          className="w-full px-4 py-3 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all pr-10 text-gray-700 bg-white shadow-sm"
+          className="w-full pl-10 pr-10 py-3 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-gray-700 bg-white shadow-sm"
         />
         
         {/* Clear Button */}
@@ -85,7 +90,7 @@ const CropSearchInput: React.FC<CropSearchInputProps> = ({
               onChange('');
               setSelectedIndex(-1);
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-600 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
             title="Clear"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -96,8 +101,8 @@ const CropSearchInput: React.FC<CropSearchInputProps> = ({
       </div>
 
       {/* Dropdown */}
-      {showDropdown && (
-        <ul className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-64 overflow-auto animate-in fade-in slide-in-from-top-2 duration-200">
+      {showDropdown && suggestions.length > 0 && !(suggestions.length === 1 && suggestions[0].toLowerCase() === value.toLowerCase()) && (
+        <ul className="absolute z-50 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-2xl max-h-64 overflow-auto border-t-0 rounded-t-none">
           {suggestions.map((crop, index) => (
             <li
               key={crop}
@@ -106,12 +111,12 @@ const CropSearchInput: React.FC<CropSearchInputProps> = ({
                 setShowDropdown(false);
               }}
               onMouseEnter={() => setSelectedIndex(index)}
-              className={`px-4 py-2.5 cursor-pointer flex items-center transition-colors ${
+              className={`px-4 py-2.5 cursor-pointer flex items-center transition-colors border-b last:border-0 border-gray-50 ${
                 index === selectedIndex ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-emerald-50 hover:text-emerald-700'
               }`}
             >
-              <span className={`w-2 h-2 rounded-full mr-2 ${index === selectedIndex ? 'bg-emerald-500' : 'bg-transparent'}`} />
-              {crop}
+              <div className={`w-1.5 h-1.5 rounded-full mr-3 ${index === selectedIndex ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+              <span className="font-semibold">{crop}</span>
             </li>
           ))}
         </ul>

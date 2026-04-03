@@ -234,8 +234,9 @@ export default function IoTPage({ lang }: { lang: string }) {
           </button>
         </div>
 
-        <div className="mt-6 p-5 bg-white/40 backdrop-blur-md rounded-2xl border border-white/50 text-[17px] font-bold text-gray-800 leading-relaxed italic shadow-sm">
-          "{message}"
+        <div className="mt-6 p-5 bg-white/40 backdrop-blur-md rounded-2xl border border-white/50 text-[17px] font-bold text-gray-800 leading-relaxed italic shadow-sm flex items-center justify-between">
+          <span>"{message}"</span>
+          <SpeakButton text={message} lang={lang} className="flex-shrink-0 ml-2" />
         </div>
 
 
@@ -327,8 +328,11 @@ export default function IoTPage({ lang }: { lang: string }) {
               </div>
               {getTempBadge(sensorData?.temperature || null)}
             </div>
-            <h3 className="m-0 text-4xl font-black text-gray-900">
+            <h3 className="m-0 text-4xl font-black text-gray-900 flex items-center gap-3">
               {sensorData?.temperature !== undefined && sensorData?.temperature !== null ? <CountUp end={sensorData.temperature} decimals={1} /> : "--"}°C
+              {sensorData?.temperature !== undefined && sensorData?.temperature !== null && (
+                <SpeakButton text={`Temperature is ${sensorData.temperature} degrees celsius`} lang={lang} />
+              )}
             </h3>
             <p className="text-gray-500 font-bold text-sm mb-4 uppercase tracking-wider">{t('iot_temp')}</p>
             
@@ -345,8 +349,11 @@ export default function IoTPage({ lang }: { lang: string }) {
               </div>
               {getHumidityBadge(sensorData?.humidity || null)}
             </div>
-            <h3 className="m-0 text-4xl font-black text-gray-900">
+            <h3 className="m-0 text-4xl font-black text-gray-900 flex items-center gap-3">
               {sensorData?.humidity !== undefined && sensorData?.humidity !== null ? <CountUp end={sensorData.humidity} /> : "--"}%
+              {sensorData?.humidity !== undefined && sensorData?.humidity !== null && (
+                <SpeakButton text={`Humidity is ${sensorData.humidity} percent`} lang={lang} />
+              )}
             </h3>
             <p className="text-gray-500 font-bold text-sm mb-4 uppercase tracking-wider">{t('iot_hum')}</p>
             
@@ -367,8 +374,8 @@ export default function IoTPage({ lang }: { lang: string }) {
               {sensorData?.soil_moisture !== undefined && sensorData?.soil_moisture !== null && sensorData.soil_moisture !== -999 ? <CountUp end={sensorData.soil_moisture} /> : "--"}%
               {sensorData?.soil_moisture !== undefined && sensorData?.soil_moisture !== null && sensorData.soil_moisture !== -999 && (
                 <SpeakButton 
-                  text={`Your soil moisture is ${sensorData.soil_moisture} percent. ${sensorData.soil_moisture < 30 ? 'It is too dry. Please water your crops.' : sensorData.soil_moisture > 60 ? 'It is waterlogged. Please check drainage.' : 'Conditions are optimal.'}`} 
-                  lang={lang.toUpperCase()} 
+                  text={`Soil moisture is ${sensorData.soil_moisture} percent. ${sensorData.soil_moisture < 30 ? 'Irrigation needed urgently.' : sensorData.soil_moisture > 70 ? 'Soil is well watered.' : 'Soil moisture is optimal.'}`} 
+                  lang={lang} 
                 />
               )}
             </h3>

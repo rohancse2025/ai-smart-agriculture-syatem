@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
+import SpeakButton from '../../components/SpeakButton';
 
 const MOCK_RESULT = {
   disease: "Tomato Early Blight",
@@ -234,7 +235,10 @@ export default function ScanPage({ lang }: { lang: string }) {
                   <h2 className="m-0 text-3xl font-black text-gray-900 tracking-tight leading-tight">
                     {result.disease}
                   </h2>
-                  <span className="text-4xl">🔬</span>
+                  <div className="flex items-center gap-2">
+                    <SpeakButton text={`Detected ${result.disease}. Confidence ${result.confidence} percent. Severity ${result.severity}.`} lang={lang} />
+                    <span className="text-4xl">🔬</span>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2.5 mb-6">
@@ -261,15 +265,21 @@ export default function ScanPage({ lang }: { lang: string }) {
               {/* Advice Content */}
               <div className="px-8 pb-8 flex flex-col gap-5">
                 <div className="bg-green-50/50 rounded-2xl p-6 border border-green-100/50 hover-lift transition-all">
-                  <h4 className="m-0 mb-3 text-green-700 text-[12px] font-black uppercase tracking-widest flex items-center gap-2">
-                    <span className="text-base">💊</span> Treatment Plan
+                  <h4 className="m-0 mb-3 text-green-700 text-[12px] font-black uppercase tracking-widest flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">💊</span> Treatment Plan
+                    </div>
+                    <SpeakButton text={`Treatment Plan: ${result.treatment}`} lang={lang} />
                   </h4>
                   <p className="m-0 text-gray-700 text-[15px] leading-relaxed font-medium italic">"{result.treatment}"</p>
                 </div>
 
                 <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100/50 hover-lift transition-all">
-                  <h4 className="m-0 mb-3 text-blue-700 text-[12px] font-black uppercase tracking-widest flex items-center gap-2">
-                    <span className="text-base">🛡️</span> Prevention Strategy
+                  <h4 className="m-0 mb-3 text-blue-700 text-[12px] font-black uppercase tracking-widest flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🛡️</span> Prevention Strategy
+                    </div>
+                    <SpeakButton text={`Prevention Strategy: ${result.prevention}`} lang={lang} />
                   </h4>
                   <p className="m-0 text-gray-700 text-[15px] leading-relaxed font-medium italic">"{result.prevention}"</p>
                 </div>

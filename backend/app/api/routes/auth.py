@@ -2,7 +2,7 @@ import os
 import datetime
 import bcrypt
 from jose import jwt, JWTError
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -67,6 +67,19 @@ async def get_current_farmer(token: str = Depends(oauth2_scheme), db: Session = 
         raise credentials_exception
     return farmer
 
+def get_current_phone(authorization: str = Header(None)) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, detail="Not authenticated")
+    token = authorization.replace("Bearer ", "")
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        phone = payload.get("sub")
+        if not phone:
+            raise HTTPException(401, detail="Invalid token")
+        return phone
+    except JWTError:
+        raise HTTPException(401, detail="Invalid or expired token")
+
 # --- ROUTES ---
 
 @router.post("/register")
@@ -118,38 +131,49 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     }
 
 @router.get("/profile")
-def get_profile(current_farmer: Farmer = Depends(get_current_farmer)):
-    return current_farmer
+def get_profile(phone: str = Depends(get_current_phone), db: Session = Depends(get_db)):
+    farmer = db.query(Farmer).filter(Farmer.phone == phone).first()
+    if not farmer:
+        raise HTTPException(404, detail="Farmer not found")
+    return farmer
 
 @router.put("/profile")
-def update_profile(req: UpdateProfileRequest, current_farmer: Farmer = Depends(get_current_farmer), db: Session = Depends(get_db)):
-    if req.name: current_farmer.name = req.name
-    current_farmer.location = req.location
-    current_farmer.farm_size = req.farm_size
-    current_farmer.farm_size_unit = req.farm_size_unit
-    current_farmer.soil_type = req.soil_type
-    current_farmer.primary_crop = req.primary_crop
-    current_farmer.irrigation_type = req.irrigation_type
-    current_farmer.soil_ph = req.soil_ph
-    current_farmer.nitrogen = req.nitrogen
-    current_farmer.potassium = req.potassium
-    current_farmer.sms_alerts_enabled = req.sms_alerts_enabled
-    current_farmer.sms_phone = req.sms_phone
+def update_profile(req: UpdateProfileRequest, phone: str = Depends(get_current_phone), db: Session = Depends(get_db)):
+    farmer = db.query(Farmer).filter(Farmer.phone == phone).first()
+    if not farmer:
+        raise HTTPException(404, detail="Farmer not found")
+        
+    if req.name: farmer.name = req.name
+    farmer.location = req.location
+    farmer.farm_size = req.farm_size
+    farmer.farm_size_unit = req.farm_size_unit
+    farmer.soil_type = req.soil_type
+    farmer.primary_crop = req.primary_crop
+    farmer.irrigation_type = req.irrigation_type
+    farmer.soil_ph = req.soil_ph
+    farmer.nitrogen = req.nitrogen
+    farmer.potassium = req.potassium
+    farmer.sms_alerts_enabled = req.sms_alerts_enabled
+    farmer.sms_phone = req.sms_phone
     
     db.commit()
-    db.refresh(current_farmer)
-    return {"status": "updated", "farmer": current_farmer}
+    db.refresh(farmer)
+    return {"status": "updated", "farmer": farmer}
 
 @router.delete("/profile")
-def delete_profile(current_farmer: Farmer = Depends(get_current_farmer), db: Session = Depends(get_db)):
+def delete_profile(phone: str = Depends(get_current_phone), db: Session = Depends(get_db)):
+    farmer = db.query(Farmer).filter(Farmer.phone == phone).first()
+    if not farmer:
+        raise HTTPException(404, detail="Farmer not found")
+        
     # 1. Delete Crop Records
-    db.query(CropRecord).filter(CropRecord.farmer_id == current_farmer.id).delete()
+    db.query(CropRecord).filter(CropRecord.farmer_id == farmer.id).delete()
     
     # 2. Delete Farmer History
-    db.query(FarmerHistory).filter(FarmerHistory.farmer_id == current_farmer.id).delete()
+    db.query(FarmerHistory).filter(FarmerHistory.farmer_id == farmer.id).delete()
     
     # 3. Delete Farmer
-    db.delete(current_farmer)
+    db.delete(farmer)
     db.commit()
     
     return {"status": "deleted"}

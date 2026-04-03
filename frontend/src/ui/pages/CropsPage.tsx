@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useSensor } from '../../context/SensorContext';
 import SpeakButton from '../../components/SpeakButton';
+import CropSearchInput from '../../components/CropSearchInput';
 
 // Helper for farmer-friendly hints
 const getSliderHint = (name: string, value: number) => {
@@ -231,7 +232,7 @@ export default function CropsPage({ lang }: { lang: string }) {
           className={`px-6 py-4 text-base md:text-lg font-black transition-all border-t border-x rounded-t-xl relative -bottom-[2px] cursor-pointer whitespace-nowrap
             ${activeTab === 'crop' ? 'bg-green-50 border-green-600 text-green-600' : 'bg-transparent border-transparent text-gray-400 hover:text-green-600'}`}
         >
-          🌱 Crop AI
+          🌱 {t('crops_ml_tab')}
         </button>
         <button 
           onClick={() => setActiveTab('fertilizer')}
@@ -357,7 +358,10 @@ export default function CropsPage({ lang }: { lang: string }) {
 
                       return (
                         <div key={idx} className={`bg-white rounded-2xl p-8 border border-gray-100 border-t-6 ${c.b} flex flex-col gap-4 text-center transition-all hover:-translate-y-1 hover:shadow-xl ${c.s}`}>
-                          <div className="text-5xl mt-2">{crop.emoji}</div>
+                          <div className="flex justify-between items-start">
+                            <div className="text-5xl mt-2">{crop.emoji}</div>
+                            <SpeakButton text={`${crop.name}. ${crop.reason}`} lang={lang} />
+                          </div>
                           <h3 className={`text-2xl font-black ${c.t} tracking-tight m-0`}>{crop.name}</h3>
                           <p className="text-sm text-gray-500 italic m-0 leading-relaxed font-medium">{crop.reason}</p>
                           
@@ -427,14 +431,11 @@ export default function CropsPage({ lang }: { lang: string }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="flex flex-col gap-2">
                 <label className="font-bold text-gray-500 text-sm">{t('crops_target_crop')}</label>
-                <select 
-                  name="crop" value={fertInputs.crop} onChange={handleFertChange}
-                  className="p-3.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 font-bold outline-none focus-ring-green focus:bg-white transition-all"
-                >
-                  {['Rice', 'Wheat', 'Maize', 'Cotton', 'Sugarcane', 'Mango', 'Banana', 'Grapes', 'Apple', 'Chickpea'].map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+                <CropSearchInput
+                  value={fertInputs.crop}
+                  onChange={(val) => setFertInputs(prev => ({ ...prev, crop: val }))}
+                  placeholder="Search or type crop name..."
+                />
               </div>
               
               <div className="flex flex-col gap-2">
@@ -484,9 +485,12 @@ export default function CropsPage({ lang }: { lang: string }) {
 
             {fertResult && (
               <div className="mt-4 p-8 rounded-2xl border-2 border-green-600 bg-green-50 dark:bg-green-900/10 shadow-sm animate-fade-in hover-lift">
-                <h3 className="m-0 mb-4 text-2xl font-black text-green-800 dark:text-green-400 flex items-center gap-2">
-                  ✅ {t('crops_fert_result_title')}
-                </h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="m-0 text-2xl font-black text-green-800 dark:text-green-400 flex items-center gap-2">
+                    ✅ {t('crops_fert_result_title')}
+                  </h3>
+                  <SpeakButton text={fertResult} lang={lang} />
+                </div>
                 
                 <div className="m-0 mb-8 flex flex-col gap-5">
                   {fertResult.split(". ").filter(s => s.trim().length > 0).slice(0, 3).map((sentence, idx) => {
@@ -619,9 +623,12 @@ export default function CropsPage({ lang }: { lang: string }) {
                       lang={lang.toUpperCase()}
                     />
                   </div>
-                  <p className="m-0 text-gray-700 text-base font-medium leading-relaxed italic">
-                    "{soilResult.suggestion}"
-                  </p>
+                  <div className="flex items-center">
+                    <p className="m-0 text-gray-700 text-base font-medium leading-relaxed italic">
+                      "{soilResult.suggestion}"
+                    </p>
+                    <SpeakButton text={soilResult.suggestion} lang={lang} className="ml-2" />
+                  </div>
                 </div>
 
                 {/* Breakdown */}

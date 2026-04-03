@@ -15,8 +15,15 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const farmer = JSON.parse(localStorage.getItem('kisancore_farmer') || 'null');
+  const [farmer, setFarmer] = useState(() => JSON.parse(localStorage.getItem('kisancore_farmer') || 'null'));
   const isLoggedIn = !!farmer;
+
+  const logout = () => {
+    localStorage.removeItem('kisancore_farmer');
+    localStorage.removeItem('kisancore_token');
+    setFarmer(null);
+    navigate('/');
+  };
 
   // BACKGROUND SYNC NOTIFICATION
   const [syncToast, setSyncToast] = useState<{ show: boolean, count: number }>({ show: false, count: 0 });
@@ -117,17 +124,59 @@ export default function App() {
 
   const languages = [
     { code: "EN", name: "English" },
-    { code: "हि", name: "Hindi" },
-    { code: "मर", name: "Marathi" },
+    { code: "HI", name: "हिंदी" },
+    { code: "MR", name: "मराठी" },
+    { code: "KN", name: "ಕನ್ನಡ" },
+    { code: "TA", name: "தமிழ்" },
   ];
 
-  const isChatPage = location.pathname === "/chat";
+  const isChatPage = location.pathname.toLowerCase().includes("/chat");
+  const isLoginPage = location.pathname.toLowerCase().includes("/login");
+
+  function RequiresAuth({ children, feature }: { children: React.ReactNode, feature: string }) {
+    const farmer = JSON.parse(localStorage.getItem('kisancore_farmer') || 'null');
+    const [bypass, setBypass] = useState(
+      () => sessionStorage.getItem(`bypass_${feature}`) === 'true'
+    );
+    
+    if (farmer || bypass) return <>{children}</>;
+    
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-10 shadow-xl border border-gray-100 dark:border-slate-700 max-w-md w-full text-center">
+          <div className="text-6xl mb-6">🔒</div>
+          <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3">{feature} requires login</h2>
+          <p className="text-gray-500 dark:text-slate-400 mb-8 font-medium">
+            Login to protect your farm IoT data and control your pump remotely.
+          </p>
+          <div className="flex flex-col gap-4">
+            <button 
+              onClick={() => navigate('/login')}
+              className="w-full bg-green-600 text-white py-4 rounded-xl font-black text-lg hover:bg-green-700 transition-all active:scale-95"
+            >
+              Login Now 👨‍🌾
+            </button>
+            <button
+              onClick={() => { 
+                sessionStorage.setItem(`bypass_${feature}`, 'true');
+                setBypass(true);
+              }}
+              className="w-full py-3 text-gray-400 font-bold text-sm uppercase tracking-widest"
+            >
+              Continue without login →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-gray-50 dark:bg-slate-900 transition-colors duration-300 font-sans">
       
       {/* 1. TOP NAVBAR */}
-      <nav className={`sticky top-0 z-[100] h-20 px-6 md:px-12 flex items-center justify-between transition-all duration-300 animate-slide-down ${scrolled ? 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-md shadow-md border-b border-gray-100 dark:border-slate-700' : 'bg-transparent border-transparent'}`}>
+      {!isLoginPage && (
+        <nav className={`sticky top-0 z-[100] h-20 px-6 md:px-12 flex items-center justify-between transition-all duration-300 animate-slide-down ${scrolled ? 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-md shadow-md border-b border-gray-100 dark:border-slate-700' : 'bg-transparent border-transparent'}`}>
         {/* LEFT: LOGO */}
         <Link 
           to="/" 
@@ -186,7 +235,7 @@ export default function App() {
               </button>
               
               {showDropdown && (
-                <div className="absolute top-full right-0 mt-2 w-32 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden flex flex-col z-[1000] animate-fade-in">
+                <div className="absolute top-full right-0 mt-2 w-36 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden flex flex-col z-[1000] animate-fade-in max-h-64 overflow-y-auto">
                   {languages.map((l) => (
                     <div
                       key={l.code}
@@ -229,7 +278,7 @@ export default function App() {
                   <span className="text-xs font-bold text-gray-700 dark:text-slate-300">{farmer.name?.split(' ')[0] || 'Farmer'}</span>
                 </Link>
                 <button 
-                  onClick={() => { localStorage.removeItem('kisancore_farmer'); window.location.reload(); }}
+                  onClick={logout}
                   className="text-gray-400 hover:text-red-500 transition-all font-black text-[10px] uppercase tracking-widest pl-0"
                 >
                   {t('app_logout')}
@@ -249,6 +298,7 @@ export default function App() {
           </div>
         </div>
       </nav>
+      )}
 
       {/* MOBILE MENU OVERLAY */}
       {showMobileMenu && (
@@ -314,7 +364,7 @@ export default function App() {
                   <span className="text-gray-300">→</span>
                 </Link>
                 <button 
-                  onClick={() => { localStorage.removeItem('kisancore_farmer'); window.location.reload(); }}
+                  onClick={() => { setShowMobileMenu(false); logout(); }}
                   className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 py-4 rounded-2xl text-lg font-black shadow-sm"
                 >
                   {t('app_logout')}
@@ -332,20 +382,24 @@ export default function App() {
           className={`max-w-[1200px] mx-auto p-5 md:px-12 md:py-8 transition-all animate-fade-in`}
         >
           <Routes>
-            <Route path="/login" element={<LoginPage lang={lang} />} />
+            <Route path="/login" element={<LoginPage lang={lang} onLogin={(user: any) => setFarmer(user)} />} />
             <Route path="/" element={<HomePage lang={lang} />} />
             <Route path="/crops" element={<CropsPage lang={lang} />} />
             <Route path="/scan" element={<ScanPage lang={lang} />} />
-            <Route path="/iot" element={<IoTPage lang={lang} />} />
+            <Route path="/iot" element={
+              <RequiresAuth feature="IoT Farm Control">
+                <IoTPage lang={lang} />
+              </RequiresAuth>
+            } />
             <Route path="/market" element={<MarketPage lang={lang} />} />
             <Route path="/chat" element={<ChatPage lang={lang} />} />
-            <Route path="/profile" element={<ProfilePage lang={lang} />} />
+            <Route path="/profile" element={<ProfilePage lang={lang} onLogout={logout} />} />
           </Routes>
         </div>
       </main>
 
       {/* 4. FLOATING AI CHAT BUTTON */}
-      {!isChatPage && (
+      {!isChatPage && !isLoginPage && (
         <button 
           onClick={() => navigate('/chat')}
           title="Ask AI Assistant"
@@ -365,7 +419,7 @@ export default function App() {
       )}
       
       {/* 5. FOOTER - HIDDEN ON CHAT PAGE */}
-      {!isChatPage && (
+      {!isChatPage && !isLoginPage && (
         <footer className="border-t border-gray-100 dark:border-slate-800 py-16 px-8 text-center bg-white dark:bg-slate-900 pl-0">
           <div className="flex flex-col items-center gap-4">
              <span className="text-xl">🌿</span>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import SpeakButton from '../../components/SpeakButton';
+import CropSearchInput from '../../components/CropSearchInput';
 
 interface MarketPrice {
   market: string;
@@ -12,17 +13,15 @@ interface MarketPrice {
   date: string;
 }
 
-const COMMODITIES = [
-  "Tomato", "Potato", "Onion", "Rice", "Wheat", 
-  "Maize", "Cotton", "Sugarcane", "Mango", "Banana",
-  "Soybean", "Groundnut", "Mustard", "Garlic", "Ginger"
-];
 
 const STATES = [
-  "Karnataka", "Maharashtra", "Punjab", 
-  "Uttar Pradesh", "Madhya Pradesh", "Rajasthan",
-  "Gujarat", "Andhra Pradesh", "Tamil Nadu", 
-  "West Bengal", "Haryana", "Bihar"
+  "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", 
+  "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli", "Daman and Diu", "Delhi", 
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", 
+  "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", 
+  "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", 
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", 
+  "Uttarakhand", "West Bengal"
 ];
 
 const POPULAR_CHIPS = ["Tomato", "Potato", "Onion", "Rice", "Wheat", "Cotton"];
@@ -89,10 +88,10 @@ export default function MarketPage({ lang }: { lang: string }) {
       <section className={`bg-gradient-to-br from-green-800 to-green-600 rounded-2xl p-8 md:p-10 text-white mb-8 shadow-lg shadow-green-700/20 ${isMobile ? 'text-center' : 'text-left'}`}>
         <h1 className={`m-0 mb-2.5 ${isMobile ? 'text-2xl' : 'text-3xl'} font-extrabold tracking-tight`}>📊 {t('market_title')}</h1>
         <p className={`m-0 mb-4 ${isMobile ? 'text-base' : 'text-lg'} opacity-90`}>
-          Live mandi prices from Government of India
+          {t('market_subtitle')}
         </p>
         <span className="bg-white/20 py-1.5 px-3.5 rounded-full text-xs font-bold backdrop-blur-md">
-          Powered by data.gov.in
+          {t('market_powered_by')}
         </span>
       </section>
 
@@ -100,17 +99,15 @@ export default function MarketPage({ lang }: { lang: string }) {
       <section className="bg-white rounded-2xl p-8 mb-10 shadow-sm border border-gray-200">
         <div className="flex gap-5 flex-wrap items-end">
           <div className="flex-1 min-w-[200px]">
-            <label className="block mb-2 font-bold text-gray-500 text-sm">{t('market_select_commodity')}</label>
-            <select 
-              value={commodity} 
-              onChange={(e) => setCommodity(e.target.value)}
-              className="w-full p-3 px-4 rounded-lg border border-gray-300 text-base text-gray-700 bg-white focus-ring-green outline-none"
-            >
-              {COMMODITIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <label className="block mb-2 font-bold text-gray-500 text-sm">{t('market_commodity')}</label>
+            <CropSearchInput 
+              value={commodity}
+              onChange={(val) => { setCommodity(val); }}
+              placeholder="Search commodity (tomato, wheat, rice...)"
+            />
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="block mb-2 font-bold text-gray-500 text-sm">{t('market_select_state')}</label>
+            <label className="block mb-2 font-bold text-gray-500 text-sm">{t('market_state')}</label>
             <select 
               value={state} 
               onChange={(e) => setState(e.target.value)}
@@ -216,10 +213,6 @@ export default function MarketPage({ lang }: { lang: string }) {
                         {getTrendIcon(p.modal_price).icon}
                       </span>
                       ₹{p.modal_price}
-                      <SpeakButton 
-                        text={`${p.commodity} price at ${p.market} market is ${p.modal_price} rupees per quintal.`} 
-                        lang={lang.toUpperCase()} 
-                      />
                     </td>
                     <td className="py-4 px-5 text-[15px] text-gray-500">{p.date}</td>
                   </tr>

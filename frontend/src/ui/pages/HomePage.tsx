@@ -13,6 +13,11 @@ export default function HomePage({ lang }: { lang: string }) {
   const { t } = useTranslation(lang);
   const [isPageOnline, setIsPageOnline] = useState(navigator.onLine);
   const [showSyncMessage, setShowSyncMessage] = useState(false);
+
+  const handleSync = () => {
+    setShowSyncMessage(true);
+    setTimeout(() => setShowSyncMessage(false), 3000);
+  };
   
   // 1. Auth & Profile
   const isLoggedIn = !!localStorage.getItem('kisancore_farmer');
@@ -24,6 +29,7 @@ export default function HomePage({ lang }: { lang: string }) {
   const [sensorData, setSensorData] = useState<any>({ temperature: null, humidity: null, soil_moisture: null });
   const [isLoading, setIsLoading] = useState(true);
   const [irrigation, setIrrigation] = useState<any>(null);
+  const [marketPrice, setMarketPrice] = useState<any>(null);
   
   const [recommendedCrop, setRecommendedCrop] = useState<any>(null);
   const [isRecLoading, setIsRecLoading] = useState(false);
@@ -108,6 +114,16 @@ export default function HomePage({ lang }: { lang: string }) {
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const fetchMarket = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/v1/market?state=Karnataka&commodity=Potato`);
+        if (res.data && res.data.length > 0) setMarketPrice(res.data[0]);
+      } catch (err) {}
+    };
+    fetchMarket();
   }, []);
 
   const getWeatherEmoji = (condition: string, temp: number) => {
@@ -219,7 +235,7 @@ export default function HomePage({ lang }: { lang: string }) {
               </h1>
               
               <p className="text-white/90 text-lg md:text-xl font-medium mb-10 leading-relaxed max-w-2xl drop-shadow-sm animate-fade-in-up [animation-delay:500ms]">
-                Smart crop recommendations, disease detection, live IoT monitoring — all in one platform
+                {t('hero_tagline')}
               </p>
 
               <div className="flex flex-col sm:flex-row gap-5 animate-fade-in-up [animation-delay:700ms]">
@@ -227,13 +243,26 @@ export default function HomePage({ lang }: { lang: string }) {
                   onClick={() => navigate('/crops')}
                   className="bg-white text-[#16a34a] font-bold rounded-2xl py-3.5 px-10 text-lg transition-all hover:bg-green-50 active:scale-95 shadow-xl hover-lift ripple"
                 >
-                  Get Crop Recommendation
+                  {t('hero_get_crop')}
                 </button>
                 <button 
                   onClick={() => navigate('/scan')}
                   className="bg-transparent border-2 border-white text-white font-bold rounded-2xl py-3.5 px-10 text-lg transition-all hover:bg-white/10 active:scale-95 shadow-lg backdrop-blur-sm hover-lift ripple"
                 >
-                  Scan Disease
+                  {t('hero_scan')}
+                </button>
+              </div>
+
+              {/* Login hint banner */}
+              <div className="mt-6 bg-white/15 backdrop-blur-sm rounded-full px-6 py-2.5 flex items-center gap-3 animate-fade-in-up [animation-delay:900ms]">
+                <span className="text-white/80 text-sm font-medium">
+                  💡 Login to save crop history & control IoT remotely
+                </span>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="text-green-300 font-black text-sm hover:text-white transition-colors whitespace-nowrap"
+                >
+                  Login →
                 </button>
               </div>
             </>
@@ -256,7 +285,7 @@ export default function HomePage({ lang }: { lang: string }) {
                   onClick={() => navigate('/scan')}
                   className="bg-white text-[#16a34a] font-bold rounded-2xl py-3.5 px-10 text-lg transition-all hover:bg-green-50 active:scale-95 shadow-xl hover-lift ripple"
                 >
-                  📷 Scan Disease
+                  📷 {t('hero_scan')}
                 </button>
                 <button 
                   onClick={() => navigate('/chat')}
@@ -312,7 +341,7 @@ export default function HomePage({ lang }: { lang: string }) {
               </p>
             </div>
             <div className="bg-white dark:bg-slate-800 p-4 rounded-xl flex-[1_1_150px] text-center shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
-              <p className="m-0 mb-1 text-gray-400 text-xs font-black uppercase tracking-widest">Wind Speed</p>
+              <p className="m-0 mb-1 text-gray-400 text-xs font-black uppercase tracking-widest">{t('weather_wind')}</p>
               <p className="m-0 font-bold text-gray-800 dark:text-white text-2xl">
                 {weatherLoading ? <Skeleton className="h-8 w-16 mx-auto" /> : weatherData?.wind_speed !== undefined ? `${weatherData.wind_speed} m/s` : "N/A"}
               </p>
@@ -340,7 +369,7 @@ export default function HomePage({ lang }: { lang: string }) {
         </div>
       </section>
 
-      {/* 3. LIVE FARM DATA */}
+      {/* 3. FARMER STATS + LIVE FARM DATA */}
       <section className="mb-14">
         <div className="flex items-center gap-3 mb-6">
           <h2 className="text-xl text-gray-900 dark:text-white font-black uppercase tracking-widest text-xs opacity-50 m-0">{t('home_sensor_data')}</h2>
@@ -351,15 +380,16 @@ export default function HomePage({ lang }: { lang: string }) {
           ) : null}
         </div>
         <div className={`grid gap-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
+          {/* TEMPERATURE */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-7 min-h-[160px] shadow-sm border border-gray-100 dark:border-slate-700 border-t-4 border-t-[#ef4444] flex flex-col justify-between hover-lift">
-            <div className="w-14 h-14 bg-red-50 dark:bg-red-900/20 rounded-full flex justify-center items-center">
-              <span className="text-2xl"></span>
+            <div className="w-14 h-14 bg-red-50 dark:bg-red-900/20 rounded-full flex justify-center items-center font-bold text-xl">
+              🌡️
             </div>
             <div className="mt-6">
-              <div className="min-h-[44px] flex items-center gap-2">
+              <div className="min-h-[44px] flex items-center gap-3">
                 {isLoading ? <Skeleton className="h-9 w-24" /> : (
                   <>
-                    <h3 className="m-0 mb-1 text-[36px] font-black tracking-tight text-gray-900 dark:text-white leading-none">
+                    <h3 className="m-0 mb-1 text-[36px] font-black tracking-tighter text-gray-900 dark:text-white leading-none">
                       {currentSensorData?.temperature || 0}°C
                     </h3>
                     <span className={`text-xl font-bold ${getTrend(currentSensorData?.temperature || 25, 'temp') === '↑' ? 'text-red-500' : 'text-blue-500'}`}>
@@ -368,53 +398,59 @@ export default function HomePage({ lang }: { lang: string }) {
                   </>
                 )}
               </div>
-              <p className="m-0 text-[14px] text-gray-400 font-bold uppercase tracking-wider pl-0.5 mt-1">{t('iot_temp')}</p>
+              <p className="m-0 text-[12px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1 pr-1">{t('iot_temp')}</p>
             </div>
           </div>
+
+          {/* HUMIDITY */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-7 min-h-[160px] shadow-sm border border-gray-100 dark:border-slate-700 border-t-4 border-t-[#3b82f6] flex flex-col justify-between hover-lift">
-            <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 rounded-full flex justify-center items-center">
-              <span className="text-2xl">💧</span>
+            <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 rounded-full flex justify-center items-center font-bold text-xl">
+              💧
             </div>
             <div className="mt-6">
-              <div className="min-h-[44px] flex items-center gap-2">
+              <div className="min-h-[44px] flex items-center gap-3">
                 {isLoading ? <Skeleton className="h-9 w-24" /> : (
                   <>
-                    <h3 className="m-0 mb-1 text-[36px] font-black tracking-tight text-gray-900 dark:text-white leading-none">
+                    <h3 className="m-0 mb-1 text-[36px] font-black tracking-tighter text-gray-900 dark:text-white leading-none">
                       {currentSensorData?.humidity || 0}%
                     </h3>
                     <span className="text-xl font-bold text-blue-500">{getTrend(currentSensorData?.humidity || 50, 'hum')}</span>
                   </>
                 )}
               </div>
-              <p className="m-0 text-[14px] text-gray-400 font-bold uppercase tracking-wider pl-0.5 mt-1">{t('iot_hum')}</p>
+              <p className="m-0 text-[12px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1 pr-1">{t('iot_hum')}</p>
             </div>
           </div>
+
+          {/* SOIL MOISTURE */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-7 min-h-[160px] shadow-sm border border-gray-100 dark:border-slate-700 border-t-4 border-t-[#16a34a] flex flex-col justify-between hover-lift">
-            <div className="w-14 h-14 bg-green-50 dark:bg-green-900/20 rounded-full flex justify-center items-center">
-              <span className="text-2xl">🌱</span>
+            <div className="w-14 h-14 bg-green-50 dark:bg-green-900/20 rounded-full flex justify-center items-center font-bold text-xl">
+              🌱
             </div>
             <div className="mt-6">
-              <div className="min-h-[44px] flex items-center gap-2">
+              <div className="min-h-[44px] flex items-center gap-3">
                 {isLoading ? <Skeleton className="h-9 w-24" /> : (
                   <>
-                    <h3 className="m-0 mb-1 text-[36px] font-black tracking-tight text-gray-900 dark:text-white leading-none">
+                    <h3 className="m-0 mb-1 text-[36px] font-black tracking-tighter text-gray-900 dark:text-white leading-none">
                       {currentSensorData?.soil_moisture || 0}%
                     </h3>
                     <span className="text-xl font-bold text-green-500">{getTrend(currentSensorData?.soil_moisture || 50, 'moist')}</span>
                   </>
                 )}
               </div>
-              <p className="m-0 text-[14px] text-gray-400 font-bold uppercase tracking-wider pl-0.5 mt-1">{t('iot_moisture')}</p>
+              <p className="m-0 text-[12px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1 pr-1">{t('iot_moisture')}</p>
             </div>
           </div>
+
+          {/* IRRIGATION */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-7 min-h-[160px] shadow-sm border border-gray-100 dark:border-slate-700 border-t-4 border-t-[#f97316] flex flex-col justify-between hover-lift">
-            <div className="w-14 h-14 bg-orange-50 dark:bg-orange-900/20 rounded-full flex justify-center items-center">
-              <span className="text-2xl">🚰</span>
+            <div className="w-14 h-14 bg-orange-50 dark:bg-orange-900/20 rounded-full flex justify-center items-center font-bold text-xl">
+              🚰
             </div>
             <div className="mt-6">
               <div className="min-h-[44px]">
                 {isLoading ? <Skeleton className="h-9 w-24" /> : (
-                  <h3 className={`m-0 mb-1 text-[36px] font-black tracking-tight leading-none ${
+                  <h3 className={`m-0 mb-1 text-[36px] font-black tracking-tighter leading-none ${
                     !isPageOnline ? 'text-gray-400' :
                     irrigation?.needed ? "text-red-500" :
                     "text-green-600"
@@ -423,15 +459,47 @@ export default function HomePage({ lang }: { lang: string }) {
                   </h3>
                 )}
               </div>
-              <p className="m-0 text-[14px] text-gray-400 font-bold uppercase tracking-wider pl-0.5 mt-1">
+              <p className="m-0 text-[12px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1 pr-1">
                 {!isPageOnline ? `${t('home_irrigation')} (${t('common_offline')})` : t('home_irrigation')}
               </p>
             </div>
           </div>
         </div>
+
+        {/* 4. FARMER STATS ROW */}
+        <div className={`grid gap-4 mt-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 hover-lift">
+            <p className="m-0 text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">🌾 Active Crops</p>
+            <p className="m-0 text-3xl font-black text-green-600">
+              {isLoggedIn ? (() => { try { return JSON.parse(farmer?.active_crops || '[]').length; } catch { return 0; } })() : '--'}
+            </p>
+            <p className="m-0 text-xs text-gray-400 mt-1 italic">{isLoggedIn ? 'Currently tracked' : 'Login to track'}</p>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 hover-lift">
+            <p className="m-0 text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">🗺️ Farm Size</p>
+            <p className="m-0 text-3xl font-black text-blue-600">
+              {isLoggedIn ? `${farmer?.farm_size || 0}` : '--'}
+            </p>
+            <p className="m-0 text-xs text-gray-400 mt-1 italic">{isLoggedIn ? `${farmer?.farm_size_unit || 'acres'} • ${farmer?.location || 'India'}` : 'Login to track'}</p>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 hover-lift">
+            <p className="m-0 text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">🔬 Disease Scans</p>
+            <p className="m-0 text-3xl font-black text-amber-600">
+              {isLoggedIn ? (farmer?.total_scans || 0) : '--'}
+            </p>
+            <p className="m-0 text-xs text-gray-400 mt-1 italic">{isLoggedIn ? 'Total scans done' : 'Login to track'}</p>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 hover-lift">
+            <p className="m-0 text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">🤖 AI Chats</p>
+            <p className="m-0 text-3xl font-black text-purple-600">
+              {isLoggedIn ? (farmer?.total_chats || 0) : '--'}
+            </p>
+            <p className="m-0 text-xs text-gray-400 mt-1 italic">{isLoggedIn ? 'Questions answered' : 'Login to track'}</p>
+          </div>
+        </div>
       </section>
 
-      {/* 4. INSIGHTS ROW: REC CROP & QUICK TIPS */}
+      {/* 5. INSIGHTS ROW: REC CROP & QUICK TIPS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12 anim-fade-in">
         {/* Recommended Crop Column */}
         <section className="animate-fade-in-up">
@@ -518,12 +586,6 @@ export default function HomePage({ lang }: { lang: string }) {
         </section>
       </div>
 
-      {/* Footer / Credits */}
-      <footer className="mt-12 py-8 border-t border-gray-100 dark:border-slate-800 text-center">
-        <p className="text-gray-400 text-xs font-black uppercase tracking-[0.2em] opacity-40">
-          Powered by Antigravity AI
-        </p>
-      </footer>
     </div>
   );
 }

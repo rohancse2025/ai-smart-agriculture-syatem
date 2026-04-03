@@ -23,48 +23,33 @@ class SMSRequest(BaseModel):
   data: dict
 
 def send_sms_twilio(phone: str, message: str) -> tuple[bool, str]:
-  """
-  Sends a standard SMS using Twilio.
-  Normalizes Indian phone numbers to E.164 format (+91...).
-  """
-  if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
-    return False, "Twilio credentials not configured"
-
+  account_sid = os.getenv("TWILIO_ACCOUNT_SID", "")
+  auth_token = os.getenv("TWILIO_AUTH_TOKEN", "")
+  from_number = os.getenv("TWILIO_SMS_FROM", "")
+  
+  if not account_sid or not auth_token or not from_number:
+    return False, "Twilio credentials not configured in .env"
+  
+  # Normalize Indian phone number
+  clean = phone.replace("+", "").replace(" ", "").replace("-", "")
+  if clean.startswith("91") and len(clean) == 12:
+    clean = clean  # already has country code
+  elif len(clean) == 10:
+    clean = "91" + clean
+  to_number = "+" + clean
+  
   try:
-    # Normalize phone: 9876543210 -> +919876543210
-    clean_phone = phone.strip().replace(" ", "").replace("-", "")
-    if not clean_phone.startswith("+"):
-        if clean_phone.startswith("91") and len(clean_phone) == 12:
-            clean_phone = "+" + clean_phone
-        else:
-            # Assume 10-digit Indian number
-            if len(clean_phone) == 10:
-                clean_phone = "+91" + clean_phone
-            else:
-                # Fallback: just prepend plus if missing
-                clean_phone = "+" + clean_phone
-
-    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-    msg = client.messages.create(
-        body=message,
-        from_=TWILIO_SMS_FROM,
-        to=clean_phone
-    )
-    
+    client = Client(account_sid, auth_token)
+    msg = client.messages.create(body=message, from_=from_number, to=to_number)
     return True, f"Sent: {msg.sid}"
-
   except TwilioRestException as e:
-    # Special handling for unverified numbers in Free Trial (code 21608)
-    if e.code == 21608:
-        logger.warning(f"Twilio Trial Error: {clean_phone} is unverified. Please verify this number in Twilio Console.")
-        return False, f"Unverified number: {e.msg}"
+    if "unverified" in str(e).lower():
+      return False, "Phone not verified in Twilio trial. Add it at twilio.com/console"
     return False, str(e)
   except Exception as e:
-    logger.error(f"Twilio General Error: {e}")
     return False, str(e)
 
 def send_sms(to: str, message: str) -> bool:
-  """Wrapper to maintain existing interface"""
   success, _ = send_sms_twilio(to, message)
   return success
 

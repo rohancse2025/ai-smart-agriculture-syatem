@@ -120,12 +120,12 @@ export default function ChatPage({ lang }: { lang: string }) {
   };
 
   const questions = [
-    "Best crop for sandy soil?",
-    "How to treat leaf blight?",
-    "When should I irrigate?",
-    "What fertilizer for wheat?",
-    "How to improve soil pH?",
-    "Signs of nitrogen deficiency?"
+    t('chat_q_1'),
+    t('chat_q_2'),
+    t('chat_q_3'),
+    t('chat_q_4'),
+    t('chat_q_5'),
+    t('chat_q_6')
   ];
 
   const handleSend = async () => {
@@ -133,7 +133,7 @@ export default function ChatPage({ lang }: { lang: string }) {
     
     const userMsg: Message = {
       id: Date.now().toString(),
-      text: chatLang !== 'EN' ? `[${chatLang}] ${input.trim()}` : input.trim(),
+      text: input.trim(),
       sender: 'user',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
@@ -305,17 +305,24 @@ export default function ChatPage({ lang }: { lang: string }) {
           {messages.map(msg => {
             const isUser = msg.sender === 'user';
             return (
-              <div key={msg.id} className={`flex flex-col max-w-[80%] animate-fade-in-up ${isUser ? 'self-end' : 'self-start'}`}>
+            <div key={msg.id} className={`flex flex-col max-w-[80%] animate-fade-in-up ${isUser ? 'self-end items-end' : 'self-start items-start'}`}>
                 <div className={`px-6 py-4 rounded-3xl text-[15px] leading-relaxed shadow-sm whitespace-pre-wrap font-medium hover-lift transition-transform
                   ${isUser 
                     ? 'bg-[#16a34a] text-white rounded-br-none' 
                     : 'bg-green-50 dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-bl-none border border-gray-100 dark:border-slate-700'}`}>
                   {msg.text}
                 </div>
-                <span className={`text-[11px] text-gray-400 dark:text-slate-600 mt-2 px-2 font-bold ${isUser ? 'self-end' : 'self-start'}`}>
-                  {msg.timestamp}
-                </span>
-              </div>
+                <div className={`flex items-center gap-2 mt-2 px-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <span className="text-[11px] text-gray-400 dark:text-slate-600 font-bold">
+                    {msg.timestamp}
+                  </span>
+                  {isUser && chatLang !== 'EN' && (
+                    <span className="text-[10px] text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold border border-gray-200 dark:border-slate-700">
+                      🌐 {LANG_OPTIONS.find(l => l.code === chatLang)?.label}
+                    </span>
+                  )}
+                </div>
+            </div>
             );
           })}
           
@@ -377,7 +384,14 @@ export default function ChatPage({ lang }: { lang: string }) {
             className={`w-12 h-12 rounded-full text-white border-none flex items-center justify-center cursor-pointer transition-all flex-shrink-0 shadow-lg ripple
               ${(!input.trim() || isLoading) ? 'bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed' : 'bg-[#16a34a] hover:bg-[#15803d] active:scale-95'}`}
           >
-            {t('chat_send')}
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            )}
           </button>
         </div>
       </div>
