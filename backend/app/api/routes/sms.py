@@ -7,7 +7,12 @@ from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from fastapi.responses import Response
 
-load_dotenv()
+from pathlib import Path
+load_dotenv() # Fallback
+# Explicitly load from backend/.env if possible
+env_path = Path(__file__).resolve().parent.parent.parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
+
 router = APIRouter()
 
 # Twilio Config
@@ -23,11 +28,12 @@ class SMSRequest(BaseModel):
   data: dict
 
 def send_sms_twilio(phone: str, message: str) -> tuple[bool, str]:
-  account_sid = os.getenv("TWILIO_ACCOUNT_SID", "")
-  auth_token = os.getenv("TWILIO_AUTH_TOKEN", "")
-  from_number = os.getenv("TWILIO_SMS_FROM", "")
+  account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+  auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+  from_number = os.getenv("TWILIO_SMS_FROM")
   
   if not account_sid or not auth_token or not from_number:
+    # Diagnostic print if fails (visible in uvicorn logs)
     return False, "Twilio credentials not configured in .env"
   
   # Normalize Indian phone number
