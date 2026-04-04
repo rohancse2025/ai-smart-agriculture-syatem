@@ -129,7 +129,8 @@ export const translations: Record<string, Record<string, string>> = {
     "crops_soil_texture": "Soil Texture",
     "crops_get_recommendation": "Get Fertilizer Advice",
     "crops_analyzing": "Analyzing Soil...",
-    "crops_fert_result_title": "Fertilizer Application Plan"
+    "crops_fert_result_title": "Fertilizer Application Plan",
+    "app_continue_as_guest": "Continue as Guest"
   },
   "HI": {
     "home_welcome": "वापसी पर स्वागत है",
@@ -261,7 +262,8 @@ export const translations: Record<string, Record<string, string>> = {
     "crops_soil_texture": "मिट्टी की बनावट",
     "crops_get_recommendation": "उर्वरक सलाह प्राप्त करें",
     "crops_analyzing": "मिट्टी का विश्लेषण...",
-    "crops_fert_result_title": "उर्वरक अनुप्रयोग योजना"
+    "crops_fert_result_title": "उर्वरक अनुप्रयोग योजना",
+    "app_continue_as_guest": "अतिथि के रूप में जारी रखें"
   },
   "MR": {
     "home_welcome": "परत स्वागत आहे",
@@ -393,7 +395,8 @@ export const translations: Record<string, Record<string, string>> = {
     "crops_soil_texture": "मातीचा पोत",
     "crops_get_recommendation": "खताचा सल्ला मिळवा",
     "crops_analyzing": "मातीचे विश्लेषण...",
-    "crops_fert_result_title": "खत वापर योजना"
+    "crops_fert_result_title": "खत वापर योजना",
+    "app_continue_as_guest": "पाहुणे म्हणून पुढे जा"
   },
   "KN": {
     "home_welcome": "ಮರಳಿ ಸ್ವಾಗತ",
@@ -525,7 +528,8 @@ export const translations: Record<string, Record<string, string>> = {
     "crops_soil_texture": "ಮಣ್ಣಿನ ವಿನ್ಯಾಸ",
     "crops_get_recommendation": "ರಸಗೊಬ್ಬರ ಸಲಹೆ ಪಡೆಯಿರಿ",
     "crops_analyzing": "ಮಣ್ಣಿನ ವಿಶ್ಲೇಷಣೆ...",
-    "crops_fert_result_title": "ರಸಗೊಬ್ಬರ ಅನ್ವಯಿಕೆ ಯೋಜನೆ"
+    "crops_fert_result_title": "ರಸಗೊಬ್ಬರ ಅನ್ವயಿಕೆ ಯೋಜನೆ",
+    "app_continue_as_guest": "ಅತಿಥಿಯಾಗಿ ಮುಂದುವರಿಯಿರಿ"
   },
   "TA": {
     "home_welcome": "மீண்டும் வரவேற்கிறோம்",
@@ -657,6 +661,7 @@ export const translations: Record<string, Record<string, string>> = {
     "crops_soil_texture": "மண் அமைப்பு",
     "crops_get_recommendation": "உர ஆலோசனையைப் பெறுங்கள்",
     "crops_analyzing": "மண் பகுப்பாய்வு செய்கிறது...",
-    "crops_fert_result_title": "உர பயன்பாட்டு திட்டம்"
+    "crops_fert_result_title": "உர பயன்பாட்டு திட்டம்",
+    "app_continue_as_guest": "விருந்தினராக தொடரவும்"
   }
 };
