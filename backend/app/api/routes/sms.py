@@ -187,10 +187,39 @@ async def handle_incoming_sms(From: str = Form(...), Body: str = Form(...)):
     
     return Response(content=xml_response, media_type="application/xml")
 
+@router.get("/status")
+def sms_status():
+    """Check if Twilio credentials are configured"""
+    sid = os.getenv("TWILIO_ACCOUNT_SID", "")
+    token = os.getenv("TWILIO_AUTH_TOKEN", "")  
+    from_num = os.getenv("TWILIO_SMS_FROM", "")
+    
+    configured = bool(sid and token and from_num and 
+                      not sid.startswith("ACxx") and 
+                      token != "your_auth_token_here")
+    
+    return {
+        "configured": configured,
+        "sid_set": bool(sid and not sid.startswith("ACxx")),
+        "token_set": bool(token and token != "your_auth_token_here"),
+        "from_number": from_num if from_num else "NOT SET",
+        "instructions": "Fill TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SMS_FROM in backend/.env" if not configured else "Ready to send SMS"
+    }
+
 @router.get("/test")
 def test_sms(phone: str):
-    success, detail = send_sms_twilio(phone, "KisanCore: This is a test message from your new Twilio SMS integration. It's working! 🌾")
-    if success:
-        return {"status": "success", "message": f"Test SMS sent to {phone}", "details": detail}
-    else:
-        return {"status": "error", "message": "Failed to send test SMS.", "reason": detail}
+    # First check config
+    sid = os.getenv("TWILIO_ACCOUNT_SID", "")
+    if not sid or sid.startswith("ACxx"):
+        return {
+            "status": "not_configured",
+            "message": "Twilio not set up yet",
+            "fix": "1. Go to twilio.com → sign up free\n2. Get Account SID and Auth Token from dashboard\n3. Get a free phone number\n4. Add all 3 to backend/.env\n5. Add your phone to Twilio verified callers\n6. Restart uvicorn server"
+        }
+    success, detail = send_sms_twilio(phone, "KisanCore: SMS test successful! Your alerts are working. 🌾 -KisanCore AI")
+    return {
+        "status": "success" if success else "error",
+        "message": f"SMS sent to {phone}" if success else "SMS failed",
+        "detail": detail,
+        "fix": None if success else "Check that your phone number is verified in Twilio console (trial accounts can only send to verified numbers)"
+    }
